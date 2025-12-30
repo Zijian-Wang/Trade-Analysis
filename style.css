@@ -52,6 +52,7 @@ header h1 {
     font-weight: 700;
     background: linear-gradient(to right, #38bdf8, #818cf8);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 0.25rem;
 }
@@ -213,6 +214,7 @@ input.error {
 /* Range Slider Styling */
 input[type=range] {
     -webkit-appearance: none;
+    appearance: none;
     background: transparent;
     border: none;
 }
