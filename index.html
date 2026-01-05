@@ -26,11 +26,13 @@
                 <div class="row">
                     <div class="input-group">
                         <label for="portfolio">Portfolio Value ($) <span class="tooltip"
-                                data-tip="Total current value of your trading account.">?</span></label>
-                        <input type="text" id="portfolio" placeholder="300,000" value="300,000">
+                                data-tip="Total current value of your trading account.">?</span> <span
+                                id="portfolioDisplay"
+                                style="color: var(--accent); font-weight: bold; margin-left: 5px;"></span></label>
+                        <input type="number" id="portfolio" placeholder="300000" value="300000">
                     </div>
                     <div class="input-group">
-                        <label for="riskInput">Risk Level Per Trade (%) <span class="tooltip"
+                        <label for="riskInput">Portfolio Risk Per Trade (%) <span class="tooltip"
                                 data-tip="Percentage of portfolio you are willing to lose on this trade.">?</span></label>
                         <div class="risk-controls">
                             <input type="number" id="riskInput" value="0.75" step="0.05" min="0.1" max="5.0">
@@ -42,7 +44,7 @@
                 <!-- Row 2: Direction and Symbol -->
                 <div class="row">
                     <div class="input-group">
-                        <label>Direction <span class="tooltip"
+                        <label>Trade Direction <span class="tooltip"
                                 data-tip="Long: Profit if price rises. Short: Profit if price falls.">?</span></label>
                         <div class="toggle-container direction-toggle">
                             <input type="radio" id="long" name="direction" value="Long" checked>

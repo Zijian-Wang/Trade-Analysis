@@ -11,6 +11,8 @@ const sentimentInputs = document.querySelectorAll('input[name="sentiment"]');
 const breakLabel = document.getElementById('breakLabel');
 const breakRadio = document.getElementById('sentBreak');
 
+const portfolioDisplay = document.getElementById('portfolioDisplay');
+
 const resultPosition = document.getElementById('positionSize');
 const resultPositionVal = document.getElementById('positionValue');
 const resultRisk = document.getElementById('riskAmount');
@@ -62,6 +64,17 @@ riskInput.addEventListener('input', (e) => {
     calculateResults();
 });
 
+function updatePortfolioDisplay() {
+    const val = parseFloat(portfolioInput.value);
+    if (!isNaN(val)) {
+        portfolioDisplay.textContent = val.toLocaleString();
+    } else {
+        portfolioDisplay.textContent = '';
+    }
+}
+
+portfolioInput.addEventListener('input', updatePortfolioDisplay);
+
 function handleDirectionChange() {
     const direction = document.querySelector('input[name="direction"]:checked').value;
     const root = document.documentElement;
@@ -80,6 +93,7 @@ function handleDirectionChange() {
 
 // Initial Sync
 handleDirectionChange();
+updatePortfolioDisplay();
 updateHistoryButtons();
 
 function formatMoney(num) {

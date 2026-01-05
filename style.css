@@ -129,6 +129,7 @@ label {
     cursor: help;
     position: relative;
     font-weight: regular;
+    text-transform: none;
 }
 
 .tooltip:hover::after {
@@ -178,6 +179,12 @@ input:focus,
 select:focus {
     outline: none;
     border-color: var(--accent);
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 /* Validation Error State */
