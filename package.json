@@ -1,12 +1,13 @@
 {
-  "name": "@figma/my-make-file",
+  "name": "trade-risk-alaysis",
   "private": true,
   "version": "0.0.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "typecheck": "tsc --noEmit"
+    "preview": "vite preview",
+    "typecheck": "tsc"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
