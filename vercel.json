@@ -1,0 +1,8 @@
+{
+    "rewrites": [
+      {
+        "source": "/api/stooq/(.*)",
+        "destination": "https://stooq.com/$1"
+      }
+    ]
+  }

@@ -5,7 +5,6 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/Trade-Analysis/',
 
   plugins: [
     react(),
@@ -17,13 +16,5 @@ export default defineConfig({
       '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },
   },
-  server: {
-    proxy: {
-      '/api/stooq': {
-        target: 'https://stooq.com',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/stooq/, ''),
-      },
-    },
-  },
+
 })
