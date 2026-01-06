@@ -2,7 +2,7 @@ import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Slider } from './ui/slider';
-import { ArrowUpRight, Divide, DivideSquareIcon, SeparatorVertical } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
 
 interface TradeInputCardProps {
