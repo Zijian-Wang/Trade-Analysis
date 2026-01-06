@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TradeInputCard } from "./components/TradeInputCard";
 import { PositionSize } from "./components/PositionSize";
 import { TradeHistory } from "./components/TradeHistory";
@@ -16,7 +16,22 @@ export default function App() {
   const [entryPrice, setEntryPrice] = useState<number>(0);
   const [stopLoss, setStopLoss] = useState<number>(0);
   const [target, setTarget] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
   const [loggedTrades, setLoggedTrades] = useState<any[]>([]);
 
   const calculatePositionSize = () => {
