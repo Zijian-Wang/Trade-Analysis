@@ -43,6 +43,7 @@ export default function App() {
         riskPerShare: 0,
         rrRatio: null,
         canCalculate: false,
+        riskAmount: 0,
       };
 
     // Validation
@@ -72,6 +73,7 @@ export default function App() {
         riskPerShare: 0,
         rrRatio: null,
         canCalculate: false,
+        riskAmount: 0,
       };
     }
 
@@ -93,7 +95,7 @@ export default function App() {
       riskPerShare,
       rrRatio,
       canCalculate: true,
-      riskAmount, // Added for log
+      riskAmount,
     };
   };
 
@@ -226,6 +228,7 @@ export default function App() {
               rrRatio={position.rrRatio}
               canCalculate={position.canCalculate}
               isDarkMode={isDarkMode}
+              riskAmount={position.riskAmount}
             />
           </div>
         </div>
