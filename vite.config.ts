@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: './', // Use relative path for GitHub Pages deployment
+  base: '/trade-analysis/',
 
   plugins: [
     react(),
