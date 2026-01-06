@@ -7,9 +7,7 @@ const takeProfitInput = document.getElementById('takeProfit');
 const symbolInput = document.getElementById('symbol');
 
 const directionInputs = document.querySelectorAll('input[name="direction"]');
-const sentimentInputs = document.querySelectorAll('input[name="sentiment"]');
-const breakLabel = document.getElementById('breakLabel');
-const breakRadio = document.getElementById('sentBreak');
+const sentimentSelect = document.getElementById('sentiment');
 
 const portfolioDisplay = document.getElementById('portfolioDisplay');
 
@@ -34,6 +32,7 @@ let trades = [];
 // Event Listeners
 const inputs = [riskSlider, riskInput, portfolioInput, entryInput, stopLossInput, takeProfitInput, symbolInput];
 inputs.forEach(input => input.addEventListener('input', calculateResults));
+sentimentSelect.addEventListener('change', calculateResults);
 directionInputs.forEach(input => input.addEventListener('change', handleDirectionChange));
 
 // Copy Listeners
@@ -79,13 +78,19 @@ function handleDirectionChange() {
     const direction = document.querySelector('input[name="direction"]:checked').value;
     const root = document.documentElement;
 
+    const breakoutOption = sentimentSelect.querySelector('option[value="Break Out"]') || sentimentSelect.querySelector('option[value="Break Down"]');
+
     if (direction === 'Short') {
-        breakRadio.value = "Break Down";
-        breakLabel.textContent = "Break Down";
+        if (breakoutOption) {
+            breakoutOption.value = "Break Down";
+            breakoutOption.textContent = "BREAK DOWN";
+        }
         root.style.setProperty('--active-color', COLOR_SHORT);
     } else {
-        breakRadio.value = "Break Out";
-        breakLabel.textContent = "Break Out";
+        if (breakoutOption) {
+            breakoutOption.value = "Break Out";
+            breakoutOption.textContent = "BREAKOUT";
+        }
         root.style.setProperty('--active-color', COLOR_LONG);
     }
     calculateResults();
@@ -154,6 +159,18 @@ function validateInputs(direction, entry, stopLoss, takeProfit, symbol) {
     return valid;
 }
 
+function updateResult(element, value, isValid, validColorClass = 'text-white') {
+    if (isValid) {
+        element.textContent = value;
+        element.classList.remove('text-slate-700', 'opacity-30'); // dim styles
+        element.classList.add(validColorClass);
+    } else {
+        element.textContent = "N/A";
+        element.classList.remove(validColorClass);
+        element.classList.add('text-slate-700'); // Dim color
+    }
+}
+
 function calculateResults() {
     const portfolio = parseFloat(portfolioInput.value) || 0;
     const entry = parseFloat(entryInput.value) || 0;
@@ -167,11 +184,21 @@ function calculateResults() {
 
     if (!inputsValid) {
         addTradeBtn.disabled = true;
-        resultRisk.textContent = "---";
-        resultPosition.textContent = "---";
-        resultPositionVal.textContent = "---";
-        resultRR.textContent = "---";
-        resultEntryRisk.textContent = "---";
+        updateResult(resultRisk, "N/A", false, 'text-white');
+        updateResult(resultPosition, "N/A", false, 'text-white');
+        // positionValue has no specific color class in HTML?
+        // In HTML: <span id="positionValue" class="font-mono text-sm font-semibold cursor-pointer" ...>
+        // Parent has text-emerald-400.
+        // If I text-slate-700 the span, it overrides? Yes.
+        resultPositionVal.textContent = "N/A";
+        resultPositionVal.classList.add('text-slate-700');
+
+        updateResult(resultRR, "N/A", false, 'text-accent-success');
+        // actually HTML has it inside a span with text-accent-danger/success is for Target/Stop label. 
+        // The Entry Risk in Results (right col) is removed?
+        // No, resultEntryRisk is used in Stop Loss risk calc label: <span id="entryRisk">---</span>. 
+        // Parent: text-accent-danger. 
+        updateResult(resultEntryRisk, "N/A", false, 'text-inherit');
         return { valid: false };
     }
 
@@ -199,11 +226,24 @@ function calculateResults() {
             if (priceDiff > 0) rr = potentialProfit / priceDiff;
         }
 
-        resultRisk.textContent = `$${formatMoney(riskAmount)}`;
-        resultPosition.textContent = positionSize.toLocaleString();
+        updateResult(resultRisk, `$${formatMoney(riskAmount)}`, true, 'text-white');
+        updateResult(resultPosition, positionSize.toLocaleString(), true, 'text-white');
+
+        // Ensure positionValue uses inherited color or specific
+        // It's in a Emerald pill. We just want text content. But 'N/A' should be dim.
+        // Valid case: remove dim. inherit emerald.
         resultPositionVal.textContent = `$${formatMoney(positionValue)}`;
-        resultRR.textContent = takeProfit > 0 && rr > 0 ? rr.toFixed(2) : "---";
-        resultEntryRisk.textContent = `${entryRiskPercent.toFixed(2)}%`;
+        resultPositionVal.classList.remove('text-slate-700');
+
+        updateResult(resultRR, takeProfit > 0 && rr > 0 ? `${rr.toFixed(2)}R` : "N/A", takeProfit > 0 && rr > 0, 'text-accent-success');
+
+        // Entry Risk
+        // It is merely text content inside <span id="entryRisk">
+        // Parent has text-accent-danger.
+        // N/A should be dim? 
+        updateResult(resultEntryRisk, `${entryRiskPercent.toFixed(2)}%`, true, 'text-inherit');
+        // actually for Entry Risk, if valid, we want it to inherit from parent (danger). 
+        // If N/A, we want dim.
 
         return {
             valid: true,
@@ -221,11 +261,14 @@ function calculateResults() {
         };
     } else {
         addTradeBtn.disabled = true;
-        resultRisk.textContent = "---";
-        resultPosition.textContent = "---";
-        resultPositionVal.textContent = "---";
-        resultRR.textContent = "---";
-        resultEntryRisk.textContent = "---";
+        updateResult(resultRisk, "N/A", false, 'text-white');
+        updateResult(resultPosition, "N/A", false, 'text-white');
+
+        resultPositionVal.textContent = "N/A";
+        resultPositionVal.classList.add('text-slate-700');
+
+        updateResult(resultRR, "N/A", false, 'text-accent-success');
+        updateResult(resultEntryRisk, "N/A", false, 'text-inherit');
         return { valid: false };
     }
 }
@@ -245,7 +288,7 @@ addTradeBtn.addEventListener('click', () => {
     // Final check implies calc.valid is enough, but double check symbol just in case
     if (!symbol) return;
 
-    const sentiment = document.querySelector('input[name="sentiment"]:checked').value;
+    const sentiment = sentimentSelect.value;
 
     const trade = {
         id: Date.now(),
