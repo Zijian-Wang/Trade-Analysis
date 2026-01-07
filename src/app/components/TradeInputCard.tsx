@@ -32,12 +32,6 @@ interface TradeInputCardProps {
   onLogTrade: () => void;
 }
 
-interface TickerSearchResult {
-  symbol: string;
-  name: string;
-  exchange: string;
-}
-
 export function TradeInputCard({
   market,
   currencySymbol,
@@ -300,6 +294,10 @@ export function TradeInputCard({
           <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.tickerSymbol')}</Label>
           <Input
             type="text"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            autoComplete="off"
             value={tickerSymbol}
             onChange={handleTickerChange}
             onBlur={() => {
