@@ -16,5 +16,19 @@ export default defineConfig({
       '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },
   },
+  server: {
+    proxy: {
+      '/api/stooq': {
+        target: 'https://stooq.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/stooq/, ''),
+      },
+      '/api/alphavantage': {
+        target: 'https://www.alphavantage.co',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api\/alphavantage/, ''),
+      },
+    },
+  },
 
 })

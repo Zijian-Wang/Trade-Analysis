@@ -3,6 +3,14 @@ import { TradeInputCard } from "./components/TradeInputCard";
 import { PositionSize } from "./components/PositionSize";
 import { TradeHistory } from "./components/TradeHistory";
 import { Moon, Sun, ArrowUpRight } from "lucide-react";
+import { useLanguage } from "./context/LanguageContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./components/ui/select";
 
 export default function App() {
   const [tickerSymbol, setTickerSymbol] = useState("");
@@ -66,14 +74,16 @@ export default function App() {
   }, []);
   const [loggedTrades, setLoggedTrades] = useState<any[]>([]);
 
-  const toggleMarket = () => {
-    const newMarket = market === "US" ? "CN" : "US";
-    setMarket(newMarket);
-    // Update default portfolio capital based on market
-    if (newMarket === "US") {
+  const { t, language, setLanguage } = useLanguage();
+
+  const handleMarketChange = (value: "US" | "CN") => {
+    setMarket(value);
+    if (value === "US") {
       setPortfolioCapital(300000);
+      setLanguage('en');
     } else {
       setPortfolioCapital(1500000);
+      setLanguage('zh');
     }
   };
 
@@ -176,7 +186,7 @@ export default function App() {
       riskPercent: riskPerTrade, // Mapped
       positionSize: position.shares,
       riskAmount: position.riskAmount,
-      rrRatio: position.rrRatio || 0,
+      rrRatio: position.rrRatio ?? null,
     };
 
     // Update state
@@ -185,6 +195,25 @@ export default function App() {
 
   const handleDeleteTrade = (id: string) => {
     setLoggedTrades(prev => prev.filter(t => t.id !== id));
+  };
+
+  const handleTickerSymbolChange = (value: string) => {
+    setTickerSymbol(value);
+    
+    // Auto-detect market and language based on input
+    const trimmed = value.trim();
+    if (!trimmed) return;
+
+    const isLetter = /^[a-zA-Z]/.test(trimmed);
+    const isDigit = /^\d/.test(trimmed);
+
+    if (isLetter && market !== 'US') {
+      handleMarketChange('US');
+      setLanguage('en');
+    } else if (isDigit && market !== 'CN') {
+      handleMarketChange('CN');
+      setLanguage('zh');
+    }
   };
 
   return (
@@ -208,26 +237,39 @@ export default function App() {
                 className={`text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight transition-colors ${isDarkMode ? "text-white" : "text-gray-900"
                   }`}
               >
-                Trade Analysis
+                {t('header.title')}
               </h1>
               <p
                 className={`text-xs sm:text-sm mt-0.5 sm:mt-1 transition-colors ${isDarkMode ? "text-gray-400" : "text-gray-500"
                   }`}
               >
-                Risk Management & Position Sizing
+                {t('header.subtitle')}
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <button
-                onClick={toggleMarket}
-                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                  isDarkMode
-                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
-              >
-                {market === "US" ? "🇺🇸 US" : "🇨🇳 CN"}
-              </button>
+              <Select value={market} onValueChange={handleMarketChange}>
+                <SelectTrigger className={`w-[110px] h-9 transition-colors ${
+                  isDarkMode 
+                    ? "bg-gray-800 border-gray-700 text-white" 
+                    : "bg-white border-gray-200 text-gray-900"
+                }`}>
+                  <SelectValue placeholder="Currency" />
+                </SelectTrigger>
+                <SelectContent className={isDarkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white"}>
+                  <SelectItem value="US" className={isDarkMode ? "focus:bg-gray-700 focus:text-white" : ""}>
+                    <div className="flex items-center">
+                      <span className="w-5 text-center font-semibold text-emerald-500 mr-2">$</span>
+                      <span>USD</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="CN" className={isDarkMode ? "focus:bg-gray-700 focus:text-white" : ""}>
+                    <div className="flex items-center">
+                      <span className="w-5 text-center font-semibold text-rose-500 mr-2">¥</span>
+                      <span>CNY</span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
               <button
                 onClick={() => setIsDarkMode(!isDarkMode)}
                 className={`p-2 sm:p-2.5 md:p-3 rounded-full transition-colors ${
@@ -256,7 +298,7 @@ export default function App() {
               market={market}
               currencySymbol={currencySymbol}
               tickerSymbol={tickerSymbol}
-              setTickerSymbol={setTickerSymbol}
+              setTickerSymbol={handleTickerSymbolChange}
               portfolioCapital={portfolioCapital}
               setPortfolioCapital={setPortfolioCapital}
               riskPerTrade={riskPerTrade}
@@ -288,6 +330,7 @@ export default function App() {
               canCalculate={position.canCalculate}
               isDarkMode={isDarkMode}
               riskAmount={position.riskAmount}
+              riskPerShareDollar={position.unitAmount ? Math.abs(position.unitAmount - stopLoss) : 0}
             />
           </div>
         </div>

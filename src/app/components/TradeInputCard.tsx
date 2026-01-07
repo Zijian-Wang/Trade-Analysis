@@ -15,6 +15,9 @@ import {
 import { Loader } from './ui/loader';
 import { cn } from './ui/utils';
 import debounce from 'lodash.debounce';
+import { useLanguage } from '../context/LanguageContext';
+import { Button } from './ui/button';
+import { typographyVariants } from './ui/typography';
 
 interface TradeInputCardProps {
   market: 'US' | 'CN';
@@ -67,6 +70,7 @@ export function TradeInputCard({
   isDarkMode,
   onLogTrade,
 }: TradeInputCardProps) {
+  const { t } = useLanguage();
   const [portfolioInputValue, setPortfolioInputValue] = useState(portfolioCapital.toString());
   const [isPortfolioFocused, setIsPortfolioFocused] = useState(false);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
@@ -74,6 +78,16 @@ export function TradeInputCard({
     const [isTickerDropdownOpen, setIsTickerDropdownOpen] = useState(false);
     const [isTyping, setIsTyping] = useState(false);
     const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
+    
+    const [riskInputValue, setRiskInputValue] = useState(riskPerTrade.toFixed(2));
+    const [isRiskFocused, setIsRiskFocused] = useState(false);
+
+    // Sync risk input value with prop when not focused (e.g. when slider moves)
+    useEffect(() => {
+      if (!isRiskFocused) {
+        setRiskInputValue(riskPerTrade.toFixed(2));
+      }
+    }, [riskPerTrade, isRiskFocused]);
   
   
       // Auto-fetch price when ticker changes and not typing
@@ -104,7 +118,7 @@ export function TradeInputCard({
             if (chineseSuffix) {
               const querySymbol = `${symbol}${chineseSuffix}`;
               const apiKey = import.meta.env.VITE_ALPHAVANTAGE_API_KEY;
-              const response = await fetch(`https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${querySymbol}&apikey=${apiKey}`);
+              const response = await fetch(`/api/alphavantage/query?function=GLOBAL_QUOTE&symbol=${querySymbol}&apikey=${apiKey}`);
               
               if (response.ok) {
                 const data = await response.json();
@@ -157,7 +171,7 @@ export function TradeInputCard({
         }
         try {
           const apiKey = import.meta.env.VITE_API_KEY;
-          const isChineseStock = market === 'CN' || /[\u4e00-\u9fa5]/.test(query) || /^\d+$/.test(query);
+          const isChineseStock = market === 'CN' || /[一-龥]/.test(query) || /^\d+$/.test(query);
           let url = `https://financialmodelingprep.com/api/v3/search?query=${query}&limit=10&apikey=${apiKey}`;
           if (isChineseStock) {
             url += '&exchange=SSE,SZSE';
@@ -178,6 +192,8 @@ export function TradeInputCard({
           console.error('Failed to search tickers:', error);
           setTickerSearchResults([]);
           setIsTickerDropdownOpen(false);
+        } finally {
+          setIsTyping(false);
         }
       }, 300),
       [market]
@@ -187,6 +203,7 @@ export function TradeInputCard({
   const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTickerSymbol(value);
+    setIsTyping(true);
     debouncedSearch(value);
     // Reset selected exchange when user types
     setSelectedExchange(null);
@@ -229,6 +246,31 @@ export function TradeInputCard({
     setPortfolioInputValue(e.target.value);
   };
 
+  const handleRiskFocus = () => {
+    setIsRiskFocused(true);
+    setRiskInputValue(riskPerTrade.toString());
+  };
+
+  const handleRiskBlur = () => {
+    setIsRiskFocused(false);
+    let val = parseFloat(riskInputValue);
+    if (isNaN(val)) {
+      setRiskInputValue(riskPerTrade.toFixed(2));
+      return;
+    }
+    
+    // Clip between 0.5 and 1.0
+    if (val < 0.5) val = 0.5;
+    if (val > 1.0) val = 1.0;
+    
+    setRiskPerTrade(val);
+    setRiskInputValue(val.toFixed(2));
+  };
+
+  const handleRiskChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setRiskInputValue(e.target.value);
+  };
+
   return (
     <Card className={`w-full p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col h-full ${isDarkMode
       ? 'bg-gray-800 border-gray-700'
@@ -239,11 +281,11 @@ export function TradeInputCard({
         <div className="grid grid-cols-2 gap-3 sm:gap-4 items-end">
           {/* Portfolio Capital */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Portfolio Capital</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.portfolioCapital')}</Label>
             <div className="relative">
               <span className={`absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-300'
-                                  }`}>
+                                  }
+                                  `}>
                                 {currencySymbol}</span>
                                 <Input                type="text"
                 value={isPortfolioFocused ? portfolioInputValue : portfolioCapital.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -260,28 +302,25 @@ export function TradeInputCard({
 
           {/* Risk Per Trade */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Risk Per Trade</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.riskPerTrade')}</Label>
 
             <div className="flex items-start gap-4">
               {/* Input Box - Full width on mobile, Compact on desktop */}
               <div className="relative w-full sm:w-28 shrink-0">
                 <Input
                   type="text"
-                  value={riskPerTrade.toFixed(2)}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    if (!isNaN(val) && val >= 0.5 && val <= 1) {
-                      setRiskPerTrade(val);
-                    }
-                  }}
+                  value={riskInputValue}
+                  onChange={handleRiskChange}
+                  onFocus={handleRiskFocus}
+                  onBlur={handleRiskBlur}
                   className={`text-lg sm:text-xl font-semibold h-auto py-2 sm:py-2.5 pr-8 text-right transition-all ${isDarkMode
                     ? 'bg-gray-900 border-gray-600 text-blue-400 focus:border-blue-400'
                     : 'bg-white border-gray-200 text-blue-600 focus:border-blue-500'
                     }`}
                 />
                 <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                  }`}>%</span>
+                  }
+                  `}>%</span>
               </div>
 
               {/* Slider - Hidden on mobile, Flexible on desktop */}
@@ -295,7 +334,8 @@ export function TradeInputCard({
                   className="w-full"
                 />
                 <div className={`flex justify-between text-[10px] font-medium transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                  }`}>
+                  }
+                  `}>
                   <span>0.5%</span>
                   <span>I</span>
                   <span>1.0%</span>
@@ -307,12 +347,12 @@ export function TradeInputCard({
 
         {/* Divider */}
         <div className={`h-px transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-          }`}></div>
+          }
+          `}></div>
 
         {/* Ticker Symbol */}
         <div className="space-y-2">
-          <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>Ticker Symbol</Label>
+          <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.tickerSymbol')}</Label>
           <Popover open={isTickerDropdownOpen} onOpenChange={setIsTickerDropdownOpen}>
             <PopoverAnchor>
               <Input
@@ -375,41 +415,45 @@ export function TradeInputCard({
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {/* Direction */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Direction</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.direction')}</Label>
             <div className={`flex rounded-full p-0.5 sm:p-1 transition-colors ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'
-              }`}>
+              }
+              `}>
               <button
                 onClick={() => setDirection('long')}
                 className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${direction === 'long'
-                  ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm'
+                  ? (market === 'CN' 
+                      ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm'
+                      : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm')
                   : isDarkMode
                     ? 'text-gray-400 hover:text-gray-200'
                     : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
-                Long
+                {t('tradeInput.long')}
               </button>
               <button
                 onClick={() => setDirection('short')}
                 className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${direction === 'short'
-                  ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm'
+                  ? (market === 'CN'
+                      ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm'
+                      : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm')
                   : isDarkMode
                     ? 'text-gray-400 hover:text-gray-200'
                     : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
-                Short
+                {t('tradeInput.short')}
               </button>
             </div>
           </div>
 
           {/* Sentiment */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Sentiment</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.setup')}</Label>
             <div className={`flex rounded-full p-0.5 sm:p-1 transition-colors ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'
-              }`}>
+              }
+              `}>
               <button
                 onClick={() => setSentiment('TREND')}
                 className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${sentiment === 'TREND'
@@ -421,7 +465,7 @@ export function TradeInputCard({
                     : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
-                Trend
+                {t('tradeInput.trend')}
               </button>
               <button
                 onClick={() => setSentiment('PROBE')}
@@ -434,7 +478,7 @@ export function TradeInputCard({
                     : 'text-gray-600 hover:text-gray-900'
                   }`}
               >
-                Probe
+                {t('tradeInput.probe')}
               </button>
             </div>
           </div>
@@ -442,17 +486,18 @@ export function TradeInputCard({
 
         {/* Divider */}
         <div className={`h-px transition-colors ${isDarkMode ? 'bg-gray-700' : 'bg-gray-200'
-          }`}></div>
+          }
+          `}></div>
 
         {/* Trade Parameters */}
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {/* Entry Price */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Entry</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.entryPrice')}</Label>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                                  }`}>
+                                  }
+                                  `}>
                                 {currencySymbol}</span>
                                 <Input                type="number"
                 value={entryPrice || ''}
@@ -483,11 +528,11 @@ export function TradeInputCard({
 
           {/* Stop Loss */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Stop</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.stopLoss')}</Label>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                                  }`}>
+                                  }
+                                  `}>
                                 {currencySymbol}</span>
                                 <Input                type="number"
                 value={stopLoss || ''}
@@ -515,20 +560,25 @@ export function TradeInputCard({
             </div>
             <div className="flex items-baseline gap-1">
               <span className={`text-xs font-medium transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'
-                }`}>Risk:</span>
+                }
+                `}>{t('tradeInput.riskLabel')}:</span>
               <p className={`text-sm font-semibold text-rose-500`}>
-                {canCalculate ? `${Math.abs(entryPrice - stopLoss).toFixed(2)}` : '-'}
+                {canCalculate ? (
+                  <>
+                    {Math.abs(entryPrice - stopLoss).toFixed(2)} ({((Math.abs(entryPrice - stopLoss) / entryPrice) * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)
+                  </>
+                ) : '-'}
               </p>
             </div>
           </div>
 
           {/* Target */}
           <div className="space-y-2">
-            <Label className={`text-[10px] sm:text-xs uppercase tracking-wider transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-              }`}>Target</Label>
+            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.target')}</Label>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                                  }`}>
+                                  }
+                                  `}>
                                 {currencySymbol}</span>
                                 <Input                type="number"
                 value={target}
@@ -562,22 +612,14 @@ export function TradeInputCard({
 
       {/* Log Trade Button - at bottom with auto spacing - hidden on mobile */}
       <div className="mt-auto pt-4 hidden lg:block">
-        <button
+        <Button
           onClick={onLogTrade}
           disabled={!canCalculate}
-          className={`w-full py-3 sm:py-3.5 px-4 rounded-xl font-medium transition-all shadow-md flex items-center justify-center gap-2 group text-sm sm:text-base ${canCalculate
-            ? isDarkMode
-              ? 'bg-white text-gray-900 hover:bg-gray-50 hover:shadow-lg hover:-translate-y-0.5'
-              : 'bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5'
-            : isDarkMode
-              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-              : 'bg-gray-200 text-gray-400 cursor-not-allowed'
-            }`}
+          className="w-full h-auto py-3 sm:py-3.5 px-4 rounded-xl text-sm sm:text-base shadow-md hover:shadow-lg hover:-translate-y-0.5"
         >
-          <span>Log Trade to Journal</span>
-          <ArrowUpRight className={`w-4 h-4 transition-transform ${canCalculate ? 'group-hover:translate-x-0.5 group-hover:-translate-y-0.5' : ''
-            }`} />
-        </button>
+          <span>{t('tradeInput.logTrade')}</span>
+          <ArrowUpRight className="ml-2 h-4 w-4" />
+        </Button>
       </div>
     </Card>
   );

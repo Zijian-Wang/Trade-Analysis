@@ -1,0 +1,49 @@
+{
+  "header": {
+    "title": "Trade Analysis",
+    "subtitle": "Risk Management & Position Sizing",
+    "region_us": "🇺🇸 US",
+    "region_cn": "🇨🇳 CN"
+  },
+  "tradeInput": {
+    "tickerSymbol": "Ticker Symbol",
+    "portfolioCapital": "Portfolio Capital",
+    "riskPerTrade": "Risk Per Trade (%)",
+    "direction": "Direction",
+    "long": "Long",
+    "short": "Short",
+    "setup": "Setup / Sentiment",
+    "trend": "Trend",
+    "probe": "Probe",
+    "riskLabel": "Risk Per Share",
+    "entryPrice": "Entry Price",
+    "stopLoss": "Stop Loss",
+    "target": "Target (Optional)",
+    "logTrade": "Log Trade to Journal"
+  },
+  "positionSize": {
+    "title": "Position Size",
+    "shares": "Shares / Contracts",
+    "positionValue": "Position Value",
+    "riskAmount": "Risk Amount",
+    "riskPerShare": "Risk Per Share",
+    "rrRatio": "R/R Ratio",
+    "riskReward": "Risk/Reward"
+  },
+  "tradeHistory": {
+    "title": "Trade History",
+    "noTrades": "No trades logged yet.",
+    "startPrompt": "Start by calculating a position size and logging a trade",
+    "col_date": "Date",
+    "col_symbol": "Symbol",
+    "col_direction": "Side",
+    "col_setup": "Setup",
+    "col_entry": "Entry",
+    "col_stop": "Stop",
+    "col_target": "Target",
+    "col_risk": "Risk %",
+    "col_size": "Size",
+    "col_risk_amount": "Risk $",
+    "col_rr": "R/R"
+  }
+}

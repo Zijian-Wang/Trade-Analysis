@@ -2,6 +2,7 @@ import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Slider } from './ui/slider';
+import { useLanguage } from '../context/LanguageContext';
 
 interface TradeSetupProps {
   tickerSymbol: string;
@@ -40,6 +41,7 @@ export function TradeSetup({
   target,
   setTarget,
 }: TradeSetupProps) {
+  const { t } = useLanguage();
   return (
     <div className="space-y-6">
       {/* Portfolio Setup & Trade Info */}
@@ -139,7 +141,7 @@ export function TradeSetup({
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Trend
+                {t('tradeInput.trend')}
               </button>
               <button
                 onClick={() => setSentiment('PROBE')}
@@ -149,7 +151,7 @@ export function TradeSetup({
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
               >
-                Probe
+                {t('tradeInput.probe')}
               </button>
             </div>
           </div>
@@ -190,7 +192,9 @@ export function TradeSetup({
                 step="0.01"
               />
             </div>
-            <p className="text-xs text-rose-400">Risk: ${Math.abs(entryPrice - stopLoss).toFixed(2)}</p>
+            </div>
+            <p className="text-xs text-rose-400">{t('tradeInput.riskLabel')}: ${Math.abs(entryPrice - stopLoss).toFixed(2)} ({((Math.abs(entryPrice - stopLoss) / entryPrice) * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)</p>
+          </div>
           </div>
 
           {/* Target */}

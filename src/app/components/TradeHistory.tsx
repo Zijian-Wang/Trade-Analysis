@@ -1,6 +1,7 @@
 import { Card } from './ui/card';
 import { Download, Copy, Clock, Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface Trade {
   id: string;
@@ -14,7 +15,7 @@ interface Trade {
   riskPercent: number;
   positionSize: number;
   riskAmount: number;
-  rrRatio: number;
+  rrRatio: number | null;
 }
 
 /*
@@ -72,6 +73,7 @@ interface TradeHistoryProps {
 }
 
 export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDeleteTrade }: TradeHistoryProps) {
+  const { t } = useLanguage();
   const [copied, setCopied] = useState(false);
   const [rowCopied, setRowCopied] = useState<string | null>(null);
 
@@ -109,7 +111,7 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
           <Clock className={`w-4 h-4 sm:w-5 sm:h-5 transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'
             }`} />
           <h2 className={`text-base sm:text-lg font-semibold transition-colors ${isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>Recent Trades</h2>
+            }`}>{t('tradeHistory.title')}</h2>
         </div>
 
         {loggedTrades.length > 0 && (
@@ -144,9 +146,9 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
           <Clock className={`w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-300'
             }`} />
           <p className={`text-sm sm:text-base transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-            }`}>No trades logged yet</p>
+            }`}>{t('tradeHistory.noTrades')}</p>
           <p className={`text-xs sm:text-sm mt-1 transition-colors ${isDarkMode ? 'text-gray-500' : 'text-gray-400'
-            }`}>Start by calculating a position size and logging a trade</p>
+            }`}>{t('tradeHistory.startPrompt')}</p>
         </div>
       ) : (
         /* Table */
@@ -157,27 +159,27 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
                 }`}>
                 <th className="w-16 py-3 px-2 sm:px-4"></th>
                 <th className={`text-left py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Date</th>
+                  }`}>{t('tradeHistory.col_date')}</th>
                 <th className={`text-left py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Symbol</th>
+                  }`}>{t('tradeHistory.col_symbol')}</th>
                 <th className={`text-left py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Dir</th>
+                  }`}>{t('tradeHistory.col_direction')}</th>
                 <th className={`text-left py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Setup</th>
+                  }`}>{t('tradeHistory.col_setup')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Entry</th>
+                  }`}>{t('tradeHistory.col_entry')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Stop</th>
+                  }`}>{t('tradeHistory.col_stop')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Target</th>
+                  }`}>{t('tradeHistory.col_target')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Risk %</th>
+                  }`}>{t('tradeHistory.col_risk')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Pos Size</th>
+                  }`}>{t('tradeHistory.col_size')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>Risk $</th>
+                  }`}>{t('tradeHistory.col_risk_amount')}</th>
                 <th className={`text-right py-3 px-2 sm:px-4 text-[10px] sm:text-xs uppercase tracking-wider font-medium transition-colors ${isDarkMode ? 'text-gray-400' : 'text-gray-500'
-                  }`}>R:R</th>
+                  }`}>{t('tradeHistory.col_rr')}</th>
               </tr>
             </thead>
             <tbody className={`transition-colors ${isDarkMode ? 'divide-gray-700' : 'divide-gray-100'
@@ -231,7 +233,7 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
                     {currencySymbol}{trade.stop.toFixed(2)}
                   </td>
                   <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-right text-emerald-600">
-                    {trade.target ? `${currencySymbol}${trade.target.toFixed(2)}` : '-'}
+                    {trade.target ? `${currencySymbol}${trade.target.toFixed(2)}` : <span className="text-gray-400">/</span>}
                   </td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm text-right transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-900'
                     }`}>
@@ -247,7 +249,7 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
                   </td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-right transition-colors ${isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
-                    {trade.rrRatio.toFixed(2)}
+                    {trade.rrRatio !== null ? trade.rrRatio.toFixed(2) : <span className="text-gray-400">/</span>}
                   </td>
                 </tr>
               ))}

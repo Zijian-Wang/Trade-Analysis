@@ -2,6 +2,7 @@ import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { ArrowUpRight } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 interface TradeParametersCardProps {
   tickerSymbol: string;
@@ -34,6 +35,7 @@ export function TradeParametersCard({
   setTarget,
   isDarkMode,
 }: TradeParametersCardProps) {
+  const { t } = useLanguage();
   return (
     <Card className={`p-6 shadow-sm hover:shadow-md transition-all duration-300 ${
       isDarkMode 
@@ -115,7 +117,7 @@ export function TradeParametersCard({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Trend
+                {t('tradeInput.trend')}
               </button>
               <button
                 onClick={() => setSentiment('PROBE')}
@@ -129,7 +131,7 @@ export function TradeParametersCard({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Probe
+                {t('tradeInput.probe')}
               </button>
             </div>
           </div>
@@ -184,9 +186,11 @@ export function TradeParametersCard({
                 step="0.01"
               />
             </div>
+            </div>
             <p className={`text-xs transition-colors ${
               isDarkMode ? 'text-rose-400' : 'text-rose-400'
-            }`}>Risk: ${Math.abs(entryPrice - stopLoss).toFixed(2)}</p>
+            }`}>{t('tradeInput.riskLabel')}: ${Math.abs(entryPrice - stopLoss).toFixed(2)} ({((Math.abs(entryPrice - stopLoss) / entryPrice) * 100).toLocaleString('en-US', { maximumFractionDigits: 2 })}%)</p>
+          </div>
           </div>
 
           {/* Target */}
@@ -215,7 +219,7 @@ export function TradeParametersCard({
               isDarkMode ? 'text-gray-500' : 'text-gray-400'
             }`}>Take profit level</p>
           </div>
-        </div>
+        
 
         {/* Log Trade Button */}
         <div className={`pt-4 border-t transition-colors ${
@@ -230,7 +234,7 @@ export function TradeParametersCard({
             <ArrowUpRight className="w-5 h-5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
           </button>
         </div>
-      </div>
+      
     </Card>
   );
 }

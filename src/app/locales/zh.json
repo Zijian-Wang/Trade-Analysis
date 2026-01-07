@@ -1,0 +1,49 @@
+{
+  "header": {
+    "title": "交易分析",
+    "subtitle": "风险管理与仓位控制",
+    "region_us": "🇺🇸 美股",
+    "region_cn": "🇨🇳 A股"
+  },
+  "tradeInput": {
+    "tickerSymbol": "交易代码",
+    "portfolioCapital": "总资金",
+    "riskPerTrade": "单笔风险 (%)",
+    "direction": "方向",
+    "long": "做多",
+    "short": "做空",
+    "setup": "策略",
+    "trend": "趋势追踪",
+    "probe": "试盘",
+    "riskLabel": "每股风险",
+    "entryPrice": "入场价",
+    "stopLoss": "止损价",
+    "target": "目标价 (可选)",
+    "logTrade": "记录交易"
+  },
+  "positionSize": {
+    "title": "仓位大小",
+    "shares": "股数 / 手数",
+    "positionValue": "持仓市值",
+    "riskAmount": "风险金额",
+    "riskPerShare": "每股风险",
+    "rrRatio": "盈亏比",
+    "riskReward": "风险/回报"
+  },
+  "tradeHistory": {
+    "title": "历史交易",
+    "noTrades": "暂无交易记录。",
+    "startPrompt": "开始计算仓位大小并记录交易",
+    "col_date": "日期",
+    "col_symbol": "代码",
+    "col_direction": "方向",
+    "col_setup": "策略",
+    "col_entry": "入场",
+    "col_stop": "止损",
+    "col_target": "目标",
+    "col_risk": "风险 %",
+    "col_size": "数量",
+    "col_risk_amount": "风险金额",
+    "col_rr": "盈亏比"
+  }
+}
