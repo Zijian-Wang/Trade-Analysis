@@ -1,160 +1,54 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { TradeInputCard } from "./components/TradeInputCard";
 import { PositionSize } from "./components/PositionSize";
 import { TradeHistory } from "./components/TradeHistory";
-import { Moon, Sun, ArrowUpRight } from "lucide-react";
-import { useLanguage } from "./context/LanguageContext";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./components/ui/select";
+import { ArrowUpRight } from "lucide-react";
+import { useTheme } from "next-themes";
+import { Header } from "./components/Header";
+
+// Hooks
+import { useTradeCalculator } from "./hooks/useTradeCalculator";
+import { useMarketSettings } from "./hooks/useMarketSettings";
 
 export default function App() {
-  const [tickerSymbol, setTickerSymbol] = useState("");
-  const [market, setMarket] = useState<"US" | "CN">(() => {
-    try {
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      // Simple check for China timezones
-      if (
-        timeZone === "Asia/Shanghai" ||
-        timeZone === "Asia/Chongqing" ||
-        timeZone === "Asia/Harbin" ||
-        timeZone === "Asia/Urumqi" ||
-        timeZone === "PRC"
-      ) {
-        const now = new Date();
-        // Get hour in Beijing time
-        const hour = parseInt(
-          new Intl.DateTimeFormat("en-US", {
-            timeZone: "Asia/Shanghai",
-            hour: "numeric",
-            hour12: false,
-          }).format(now),
-          10
-        );
+  // Theme
+  const { theme, resolvedTheme } = useTheme();
+  // We use resolvedTheme to determine if we are in dark mode for logic that requires it
+  const isDarkMode = resolvedTheme === "dark";
 
-        if (hour >= 9 && hour < 16) {
-          return "CN";
-        }
-      }
-    } catch (e) {
-      console.error("Error detecting timezone/market preference", e);
-    }
-    return "US";
-  });
-  const [portfolioCapital, setPortfolioCapital] = useState(
-    market === "CN" ? 1500000 : 300000
-  );
-  const [direction, setDirection] = useState<"long" | "short">("long");
-  const [sentiment, setSentiment] = useState("TREND");
-  const [riskPerTrade, setRiskPerTrade] = useState(0.75);
-  const [entryPrice, setEntryPrice] = useState<number>(0);
-  const [stopLoss, setStopLoss] = useState<number>(0);
-  const [target, setTarget] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== "undefined") {
-      return window.matchMedia("(prefers-color-scheme: dark)").matches;
-    }
-    return false;
-  });
+  // Market & Portfolio Settings
+  const { 
+    market, 
+    setMarket, 
+    portfolioCapital, 
+    setPortfolioCapital, 
+    detectMarketFromSymbol,
+    currencySymbol 
+  } = useMarketSettings();
 
-  const currencySymbol = market === "US" ? "$" : "¥";
+  // Trade Calculator
+  const {
+    tickerSymbol,
+    setTickerSymbol,
+    direction,
+    setDirection,
+    riskPerTrade,
+    setRiskPerTrade,
+    entryPrice,
+    setEntryPrice,
+    stopLoss,
+    setStopLoss,
+    target,
+    setTarget,
+    sentiment, 
+    setSentiment,
+    position,
+  } = useTradeCalculator(portfolioCapital);
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsDarkMode(e.matches);
-    };
-
-    mediaQuery.addEventListener("change", handleChange);
-    return () => mediaQuery.removeEventListener("change", handleChange);
-  }, []);
+  // Trade Logging
+  // Note: We might want to move this to a hook later too, but for now filtering is simple
   const [loggedTrades, setLoggedTrades] = useState<any[]>([]);
 
-  const { t, language, setLanguage } = useLanguage();
-
-  const handleMarketChange = (value: "US" | "CN") => {
-    setMarket(value);
-    if (value === "US") {
-      setPortfolioCapital(300000);
-      setLanguage('en');
-    } else {
-      setPortfolioCapital(1500000);
-      setLanguage('zh');
-    }
-  };
-
-  const calculatePositionSize = () => {
-    if (!entryPrice || !stopLoss)
-      return {
-        shares: 0,
-        value: 0,
-        unitAmount: 0,
-        riskPerShare: 0,
-        rrRatio: null,
-        canCalculate: false,
-        riskAmount: 0,
-      };
-
-    // Validation
-    const hasRequiredInputs =
-      tickerSymbol.trim() !== "" &&
-      entryPrice > 0 &&
-      stopLoss > 0;
-    const isStopLossValid =
-      hasRequiredInputs &&
-      ((direction === "long" && entryPrice > stopLoss) ||
-        (direction === "short" && entryPrice < stopLoss));
-
-    const targetNum = target ? parseFloat(target) : null;
-    const isTargetValid =
-      !targetNum ||
-      (direction === "long" && entryPrice < targetNum) ||
-      (direction === "short" && entryPrice > targetNum);
-
-    const canCalculate =
-      hasRequiredInputs && isStopLossValid && isTargetValid;
-
-    if (!canCalculate) {
-      return {
-        shares: 0,
-        value: 0,
-        unitAmount: 0,
-        riskPerShare: 0,
-        rrRatio: null,
-        canCalculate: false,
-        riskAmount: 0,
-      };
-    }
-
-    const riskAmount = portfolioCapital * (riskPerTrade / 100);
-    const priceRisk = Math.abs(entryPrice - stopLoss);
-    const shares = Math.round(riskAmount / priceRisk);
-    const value = shares * entryPrice;
-    const riskPerShare = (priceRisk / entryPrice) * 100;
-
-    let rrRatio = null;
-    if (targetNum && isTargetValid) {
-      rrRatio = Math.abs(targetNum - entryPrice) / priceRisk;
-    }
-
-    return {
-      shares,
-      value,
-      unitAmount: entryPrice,
-      riskPerShare,
-      rrRatio,
-      canCalculate: true,
-      riskAmount,
-    };
-  };
-
-  const position = calculatePositionSize();
-
-  /* Duplicate Check & Log */
   const handleLogTrade = () => {
     if (!position.canCalculate) return;
 
@@ -175,21 +69,20 @@ export default function App() {
     }
 
     const newTrade = {
-      id: Date.now().toString(), // Ensure string ID
-      date: today, // YYYY-MM-DD
-      symbol: tickerSymbol, // Mapped to Trade interface
+      id: Date.now().toString(),
+      date: today,
+      symbol: tickerSymbol,
       direction,
-      setup: sentiment, // Mapped to Trade interface (using sentiment as setup)
-      entry: entryPrice, // Mapped
-      stop: stopLoss, // Mapped
+      setup: sentiment,
+      entry: entryPrice,
+      stop: stopLoss,
       target: target ? parseFloat(target) : null,
-      riskPercent: riskPerTrade, // Mapped
+      riskPercent: riskPerTrade,
       positionSize: position.shares,
       riskAmount: position.riskAmount,
       rrRatio: position.rrRatio ?? null,
     };
 
-    // Update state
     setLoggedTrades((prev) => [newTrade, ...prev]);
   };
 
@@ -199,95 +92,13 @@ export default function App() {
 
   const handleTickerSymbolChange = (value: string) => {
     setTickerSymbol(value);
-    
-    // Auto-detect market and language based on input
-    const trimmed = value.trim();
-    if (!trimmed) return;
-
-    const isLetter = /^[a-zA-Z]/.test(trimmed);
-    const isDigit = /^\d/.test(trimmed);
-
-    if (isLetter && market !== 'US') {
-      handleMarketChange('US');
-      setLanguage('en');
-    } else if (isDigit && market !== 'CN') {
-      handleMarketChange('CN');
-      setLanguage('zh');
-    }
+    detectMarketFromSymbol(value);
   };
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-300 ${isDarkMode
-        ? "dark bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900"
-        : "bg-gradient-to-br from-gray-50 via-white to-gray-100"
-        }`}
-    >
-      {/* Header */}
-      <header
-        className={`border-b backdrop-blur-sm transition-colors duration-300 ${isDarkMode
-          ? "border-gray-700 bg-gray-900/80"
-          : "border-gray-200 bg-white/80"
-          }`}
-      >
-        <div className="max-w-[1260px] mx-auto px-4 sm:px-4 md:px-6 py-3 sm:py-4 md:py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1
-                className={`text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight transition-colors ${isDarkMode ? "text-white" : "text-gray-900"
-                  }`}
-              >
-                {t('header.title')}
-              </h1>
-              <p
-                className={`text-xs sm:text-sm mt-0.5 sm:mt-1 transition-colors ${isDarkMode ? "text-gray-400" : "text-gray-500"
-                  }`}
-              >
-                {t('header.subtitle')}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={market} onValueChange={handleMarketChange}>
-                <SelectTrigger className={`w-[110px] h-9 transition-colors ${
-                  isDarkMode 
-                    ? "bg-gray-800 border-gray-700 text-white" 
-                    : "bg-white border-gray-200 text-gray-900"
-                }`}>
-                  <SelectValue placeholder="Currency" />
-                </SelectTrigger>
-                <SelectContent className={isDarkMode ? "bg-gray-800 border-gray-700 text-white" : "bg-white"}>
-                  <SelectItem value="US" className={isDarkMode ? "focus:bg-gray-700 focus:text-white" : ""}>
-                    <div className="flex items-center">
-                      <span className="w-5 text-center font-semibold text-emerald-500 mr-2">$</span>
-                      <span>USD</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="CN" className={isDarkMode ? "focus:bg-gray-700 focus:text-white" : ""}>
-                    <div className="flex items-center">
-                      <span className="w-5 text-center font-semibold text-rose-500 mr-2">¥</span>
-                      <span>CNY</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <button
-                onClick={() => setIsDarkMode(!isDarkMode)}
-                className={`p-2 sm:p-2.5 md:p-3 rounded-full transition-colors ${
-                  isDarkMode
-                    ? "hover:bg-gray-800 text-gray-400"
-                    : "hover:bg-gray-100 text-gray-600"
-                }`}
-              >
-                {isDarkMode ? (
-                  <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-                ) : (
-                  <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen transition-colors duration-300 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 via-white to-gray-100">
+      
+      <Header market={market} onMarketChange={setMarket} />
 
       {/* Main Content */}
       <main className="max-w-[1260px] mx-auto px-4 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
@@ -330,23 +141,20 @@ export default function App() {
               canCalculate={position.canCalculate}
               isDarkMode={isDarkMode}
               riskAmount={position.riskAmount}
-              riskPerShareDollar={position.unitAmount ? Math.abs(position.unitAmount - stopLoss) : 0}
+              riskPerShareDollar={position.riskPerShareDollar}
             />
           </div>
         </div>
 
         {/* Mobile Log Button - only visible on mobile */}
+        {/* We can extract this to a simpler component later if needed, leaving it here for now */}
         <div className="lg:hidden mt-3 sm:mt-4">
           <button
             onClick={handleLogTrade}
             disabled={!position.canCalculate}
             className={`w-full py-3 px-4 rounded-xl font-medium transition-all shadow-md flex items-center justify-center gap-2 group text-sm ${position.canCalculate
-              ? isDarkMode
-                ? "bg-white text-gray-900 hover:bg-gray-50 hover:shadow-lg hover:-translate-y-0.5"
-                : "bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5"
-              : isDarkMode
-                ? "bg-gray-700 text-gray-500 cursor-not-allowed"
-                : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              ? "dark:bg-white dark:text-gray-900 dark:hover:bg-gray-50 bg-gray-900 text-white hover:bg-gray-800 hover:shadow-lg hover:-translate-y-0.5"
+              : "dark:bg-gray-700 dark:text-gray-500 bg-gray-200 text-gray-400 cursor-not-allowed"
               }`}
           >
             <span>Log Trade to Journal</span>
