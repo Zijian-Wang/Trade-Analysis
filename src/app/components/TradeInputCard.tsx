@@ -3,10 +3,8 @@ import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Slider } from './ui/slider';
 import { ArrowUpRight } from 'lucide-react';
-import { useState, useEffect, useCallback } from 'react';
-import { Popover, PopoverAnchor } from './ui/popover';
+import { useState, useEffect } from 'react';
 import { Loader } from './ui/loader';
-import debounce from 'lodash.debounce';
 import { useLanguage } from '../context/LanguageContext';
 import { Button } from './ui/button';
 import { typographyVariants } from './ui/typography';
@@ -66,12 +64,9 @@ export function TradeInputCard({
   const [portfolioInputValue, setPortfolioInputValue] = useState(portfolioCapital.toString());
   const [isPortfolioFocused, setIsPortfolioFocused] = useState(false);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
-    const [tickerSearchResults, setTickerSearchResults] = useState<TickerSearchResult[]>([]);
-    const [isTickerDropdownOpen, setIsTickerDropdownOpen] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const [selectedExchange, setSelectedExchange] = useState<string | null>(null);
+  const [isTyping, setIsTyping] = useState(false);
     
-    const [riskInputValue, setRiskInputValue] = useState(riskPerTrade.toFixed(2));
+  const [riskInputValue, setRiskInputValue] = useState(riskPerTrade.toFixed(2));
     const [isRiskFocused, setIsRiskFocused] = useState(false);
 
     // Sync risk input value with prop when not focused (e.g. when slider moves)
@@ -149,56 +144,14 @@ export function TradeInputCard({
           }
         };
     
-        const timeoutId = setTimeout(fetchPrice, 1000);
-        return () => clearTimeout(timeoutId);
-      }, [tickerSymbol, setEntryPrice, isTyping, selectedExchange, market]);  
-    const debouncedSearch = useCallback(
-      debounce(async (query: string) => {
-        setIsTyping(true);
-        if (!query) {
-          setTickerSearchResults([]);
-          setIsTickerDropdownOpen(false);
-          setIsTyping(false);
-          return;
-        }
-        try {
-          const apiKey = import.meta.env.VITE_API_KEY;
-          const isChineseStock = market === 'CN' || /[一-龥]/.test(query) || /^\d+$/.test(query);
-          let url = `https://financialmodelingprep.com/api/v3/search?query=${query}&limit=10&apikey=${apiKey}`;
-          if (isChineseStock) {
-            url += '&exchange=SSE,SZSE';
-          }
-          const response = await fetch(url);
-          if (!response.ok) {
-            throw new Error('Failed to fetch tickers');
-          }
-          const data = await response.json();
-          if (Array.isArray(data)) {
-            setTickerSearchResults(data);
-  setIsTickerDropdownOpen(data.length > 0);
-          } else {
-            setTickerSearchResults([]);
-            setIsTickerDropdownOpen(false);
-          }
-        } catch (error) {
-          console.error('Failed to search tickers:', error);
-          setTickerSearchResults([]);
-          setIsTickerDropdownOpen(false);
-        } finally {
-          setIsTyping(false);
-        }
-      }, 300),
-      [market]
-    );
-
+    const timeoutId = setTimeout(fetchPrice, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [tickerSymbol, setEntryPrice, isTyping, market]);
 
   const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setTickerSymbol(value);
     setIsTyping(true);
-    debouncedSearch(value);
-    // Reset selected exchange when user types
-    setSelectedExchange(null);
   }
 
   // Validation logic
@@ -345,30 +298,21 @@ export function TradeInputCard({
         {/* Ticker Symbol */}
         <div className="space-y-2">
           <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.tickerSymbol')}</Label>
-          <Popover open={isTickerDropdownOpen} onOpenChange={setIsTickerDropdownOpen}>
-            <PopoverAnchor>
-              <Input
-                type="text"
-                value={tickerSymbol}
-                onChange={handleTickerChange}
-                onBlur={() => {
-                  if (/^[a-zA-Z]+$/.test(tickerSymbol)) {
-                    setTickerSymbol(tickerSymbol.toUpperCase());
-                  }
-                  // Add a small delay to allow item selection
-                  setTimeout(() => setIsTickerDropdownOpen(false), 100)
-                }}
-                onFocus={() => {
-                  if (tickerSearchResults.length > 0)
-                    setIsTickerDropdownOpen(true)
-                }}
-                className={`text-xl sm:text-2xl font-semibold h-auto py-2 sm:py-2.5 transition-all ${isDarkMode
-                  ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
-                  : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
-                  }`}
-              />
-            </PopoverAnchor>
-          </Popover>
+          <Input
+            type="text"
+            value={tickerSymbol}
+            onChange={handleTickerChange}
+            onBlur={() => {
+              if (/^[a-zA-Z]+$/.test(tickerSymbol)) {
+                setTickerSymbol(tickerSymbol.toUpperCase());
+              }
+              setIsTyping(false);
+            }}
+            className={`text-xl sm:text-2xl font-semibold h-auto py-2 sm:py-2.5 transition-all ${isDarkMode
+              ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
+              : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
+              }`}
+          />
         </div>
 
         {/* Direction & Sentiment */}
