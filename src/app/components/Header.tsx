@@ -8,7 +8,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { Button } from "./ui/button";
 
 interface HeaderProps {
   market: "US" | "CN";

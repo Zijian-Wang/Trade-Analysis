@@ -2,18 +2,10 @@ import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
 import { Slider } from './ui/slider';
-import { ArrowUpRight, Check } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import { useState, useEffect, useCallback } from 'react';
-import { Popover, PopoverContent, PopoverAnchor } from './ui/popover';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from './ui/command';
+import { Popover, PopoverAnchor } from './ui/popover';
 import { Loader } from './ui/loader';
-import { cn } from './ui/utils';
 import debounce from 'lodash.debounce';
 import { useLanguage } from '../context/LanguageContext';
 import { Button } from './ui/button';
@@ -376,38 +368,6 @@ export function TradeInputCard({
                   }`}
               />
             </PopoverAnchor>
-            <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-              <Command>
-                <CommandList>
-                  <CommandEmpty>No results found.</CommandEmpty>
-                  <CommandGroup>
-                    {tickerSearchResults.map((result) => (
-                      <CommandItem
-                        key={result.symbol}
-                        value={result.symbol}
-                        onSelect={() => {
-                          setTickerSymbol(result.symbol);
-                          setSelectedExchange(result.exchange);
-                          setIsTickerDropdownOpen(false);
-                        }}
-                      >
-                        <Check
-                          className={cn(
-                            'mr-2 h-4 w-4',
-                            tickerSymbol === result.symbol ? 'opacity-100' : 'opacity-0'
-                          )}
-                        />
-                        <div className="flex justify-between w-full">
-                          <span>{result.symbol}</span>
-                          <span className="text-gray-500">{result.name}</span>
-                          <span className="text-gray-500">{result.exchange}</span>
-                        </div>
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
           </Popover>
         </div>
 

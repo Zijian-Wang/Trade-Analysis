@@ -12,7 +12,7 @@ import { useMarketSettings } from "./hooks/useMarketSettings";
 
 export default function App() {
   // Theme
-  const { theme, resolvedTheme } = useTheme();
+  const { resolvedTheme } = useTheme();
   // We use resolvedTheme to determine if we are in dark mode for logic that requires it
   const isDarkMode = resolvedTheme === "dark";
 
