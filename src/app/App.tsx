@@ -6,11 +6,41 @@ import { Moon, Sun, ArrowUpRight } from "lucide-react";
 
 export default function App() {
   const [tickerSymbol, setTickerSymbol] = useState("");
-  const [portfolioCapital, setPortfolioCapital] =
-    useState(300000);
-  const [direction, setDirection] = useState<"long" | "short">(
-    "long",
+  const [market, setMarket] = useState<"US" | "CN">(() => {
+    try {
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      // Simple check for China timezones
+      if (
+        timeZone === "Asia/Shanghai" ||
+        timeZone === "Asia/Chongqing" ||
+        timeZone === "Asia/Harbin" ||
+        timeZone === "Asia/Urumqi" ||
+        timeZone === "PRC"
+      ) {
+        const now = new Date();
+        // Get hour in Beijing time
+        const hour = parseInt(
+          new Intl.DateTimeFormat("en-US", {
+            timeZone: "Asia/Shanghai",
+            hour: "numeric",
+            hour12: false,
+          }).format(now),
+          10
+        );
+
+        if (hour >= 9 && hour < 16) {
+          return "CN";
+        }
+      }
+    } catch (e) {
+      console.error("Error detecting timezone/market preference", e);
+    }
+    return "US";
+  });
+  const [portfolioCapital, setPortfolioCapital] = useState(
+    market === "CN" ? 1500000 : 300000
   );
+  const [direction, setDirection] = useState<"long" | "short">("long");
   const [sentiment, setSentiment] = useState("TREND");
   const [riskPerTrade, setRiskPerTrade] = useState(0.75);
   const [entryPrice, setEntryPrice] = useState<number>(0);
@@ -23,6 +53,8 @@ export default function App() {
     return false;
   });
 
+  const currencySymbol = market === "US" ? "$" : "¥";
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleChange = (e: MediaQueryListEvent) => {
@@ -33,6 +65,17 @@ export default function App() {
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
   const [loggedTrades, setLoggedTrades] = useState<any[]>([]);
+
+  const toggleMarket = () => {
+    const newMarket = market === "US" ? "CN" : "US";
+    setMarket(newMarket);
+    // Update default portfolio capital based on market
+    if (newMarket === "US") {
+      setPortfolioCapital(300000);
+    } else {
+      setPortfolioCapital(1500000);
+    }
+  };
 
   const calculatePositionSize = () => {
     if (!entryPrice || !stopLoss)
@@ -174,19 +217,32 @@ export default function App() {
                 Risk Management & Position Sizing
               </p>
             </div>
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`p-2 sm:p-2.5 md:p-3 rounded-full transition-colors ${isDarkMode
-                ? "hover:bg-gray-800 text-gray-400"
-                : "hover:bg-gray-100 text-gray-600"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleMarket}
+                className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                  isDarkMode
+                    ? "bg-gray-800 text-gray-300 hover:bg-gray-700"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 }`}
-            >
-              {isDarkMode ? (
-                <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
+              >
+                {market === "US" ? "🇺🇸 US" : "🇨🇳 CN"}
+              </button>
+              <button
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                className={`p-2 sm:p-2.5 md:p-3 rounded-full transition-colors ${
+                  isDarkMode
+                    ? "hover:bg-gray-800 text-gray-400"
+                    : "hover:bg-gray-100 text-gray-600"
+                }`}
+              >
+                {isDarkMode ? (
+                  <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
+                ) : (
+                  <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -197,6 +253,8 @@ export default function App() {
           {/* Left Column - Trade Input - takes 3 of 5 columns */}
           <div className="lg:col-span-3 flex">
             <TradeInputCard
+              market={market}
+              currencySymbol={currencySymbol}
               tickerSymbol={tickerSymbol}
               setTickerSymbol={setTickerSymbol}
               portfolioCapital={portfolioCapital}
@@ -221,6 +279,7 @@ export default function App() {
           {/* Right Column - Position Size - takes 2 of 5 columns */}
           <div className="lg:col-span-2 flex">
             <PositionSize
+              currencySymbol={currencySymbol}
               shares={position.shares}
               value={position.value}
               unitAmount={position.unitAmount}
@@ -260,6 +319,7 @@ export default function App() {
         {/* Trade History */}
         <div className="mt-3 sm:mt-4 md:mt-6">
           <TradeHistory
+            currencySymbol={currencySymbol}
             loggedTrades={loggedTrades}
             isDarkMode={isDarkMode}
             onDeleteTrade={handleDeleteTrade}

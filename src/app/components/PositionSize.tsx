@@ -3,7 +3,7 @@ import { TrendingUp, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 
 interface PositionSizeProps {
-
+  currencySymbol: string;
   shares: number;
 
   value: number;
@@ -24,7 +24,7 @@ interface PositionSizeProps {
 
 
 
-export function PositionSize({ shares, value, riskPerShare, rrRatio, canCalculate, isDarkMode, riskAmount }: PositionSizeProps) {
+export function PositionSize({ currencySymbol, shares, value, riskPerShare, rrRatio, canCalculate, isDarkMode, riskAmount }: PositionSizeProps) {
 
   const [copiedShares, setCopiedShares] = useState(false);
 
@@ -184,7 +184,7 @@ export function PositionSize({ shares, value, riskPerShare, rrRatio, canCalculat
 
                       }`}>
 
-                      ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {currencySymbol}{value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 
                     </span>
 

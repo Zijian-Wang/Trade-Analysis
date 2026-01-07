@@ -65,12 +65,13 @@ const _mockTrades: Trade[] = [
 */
 
 interface TradeHistoryProps {
+  currencySymbol: string;
   loggedTrades: Trade[];
   isDarkMode: boolean;
   onDeleteTrade: (id: string) => void;
 }
 
-export function TradeHistory({ loggedTrades, isDarkMode, onDeleteTrade }: TradeHistoryProps) {
+export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDeleteTrade }: TradeHistoryProps) {
   const [copied, setCopied] = useState(false);
   const [rowCopied, setRowCopied] = useState<string | null>(null);
 
@@ -224,13 +225,13 @@ export function TradeHistory({ loggedTrades, isDarkMode, onDeleteTrade }: TradeH
                     }`}>{trade.setup}</td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-right transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-900'
                     }`}>
-                    ${trade.entry.toFixed(2)}
+                    {currencySymbol}{trade.entry.toFixed(2)}
                   </td>
                   <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-right text-rose-600">
-                    ${trade.stop.toFixed(2)}
+                    {currencySymbol}{trade.stop.toFixed(2)}
                   </td>
                   <td className="py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-medium text-right text-emerald-600">
-                    {trade.target ? `$${trade.target.toFixed(2)}` : '-'}
+                    {trade.target ? `${currencySymbol}${trade.target.toFixed(2)}` : '-'}
                   </td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm text-right transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-900'
                     }`}>
@@ -242,7 +243,7 @@ export function TradeHistory({ loggedTrades, isDarkMode, onDeleteTrade }: TradeH
                   </td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm text-right transition-colors ${isDarkMode ? 'text-gray-200' : 'text-gray-900'
                     }`}>
-                    ${trade.riskAmount.toLocaleString()}
+                    {currencySymbol}{trade.riskAmount.toLocaleString()}
                   </td>
                   <td className={`py-2 sm:py-3 px-2 sm:px-4 text-xs sm:text-sm font-semibold text-right transition-colors ${isDarkMode ? 'text-blue-400' : 'text-blue-600'
                     }`}>
