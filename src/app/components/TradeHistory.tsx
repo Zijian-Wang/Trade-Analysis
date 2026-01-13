@@ -2,21 +2,7 @@ import { Card } from './ui/card';
 import { Download, Copy, Clock, Check, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-
-interface Trade {
-  id: string;
-  date: string;
-  symbol: string;
-  direction: 'long' | 'short';
-  setup: string;
-  entry: number;
-  stop: number;
-  target: number | null;
-  riskPercent: number;
-  positionSize: number;
-  riskAmount: number;
-  rrRatio: number | null;
-}
+import { Trade } from '../services/tradeService';
 
 /*
 const _mockTrades: Trade[] = [
@@ -96,7 +82,7 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
 
   const handleRowCopy = async (trade: Trade) => {
     await navigator.clipboard.writeText(JSON.stringify(trade, null, 2));
-    setRowCopied(trade.id);
+    setRowCopied(trade.id ?? null);
     setTimeout(() => setRowCopied(null), 2000);
   };
 
@@ -190,7 +176,7 @@ export function TradeHistory({ currencySymbol, loggedTrades, isDarkMode, onDelet
                   <td className="py-2 sm:py-3 px-2 sm:px-4 whitespace-nowrap">
                     <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={() => onDeleteTrade(trade.id)}
+                        onClick={() => trade.id && onDeleteTrade(trade.id)}
                         className={`p-1.5 rounded-md transition-colors ${isDarkMode
                           ? 'text-gray-500 hover:text-rose-400 hover:bg-gray-700'
                           : 'text-gray-400 hover:text-rose-600 hover:bg-rose-50'}`}

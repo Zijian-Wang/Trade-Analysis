@@ -38,18 +38,18 @@ export function useMarketSettings() {
     return "US";
   });
 
-  const [portfolioCapital, setPortfolioCapital] = useState(
-    market === "CN" ? 1500000 : 300000
-  );
+  // Default to 0 for guests (will be overridden by App.tsx if user has preferences)
+  const [portfolioCapital, setPortfolioCapital] = useState(0);
 
-  const handleMarketChange = useCallback((value: "US" | "CN") => {
+  const handleMarketChange = useCallback((value: "US" | "CN", syncLanguage = true) => {
     setMarket(value);
-    if (value === "US") {
-      setPortfolioCapital(300000);
-      setLanguage('en');
-    } else {
-      setPortfolioCapital(1500000);
-      setLanguage('zh');
+    // Only sync language if caller requests it
+    if (syncLanguage) {
+      if (value === "US") {
+        setLanguage('en');
+      } else {
+        setLanguage('zh');
+      }
     }
   }, [setLanguage]);
 
@@ -62,12 +62,10 @@ export function useMarketSettings() {
 
     if (isLetter && market !== 'US') {
       handleMarketChange('US');
-      setLanguage('en'); // Sync language with market
     } else if (isDigit && market !== 'CN') {
       handleMarketChange('CN');
-      setLanguage('zh'); // Sync language with market
     }
-  }, [market, handleMarketChange, setLanguage]);
+  }, [market, handleMarketChange]);
 
   return {
     market,
@@ -78,3 +76,4 @@ export function useMarketSettings() {
     currencySymbol: market === "US" ? "$" : "¥"
   };
 }
+

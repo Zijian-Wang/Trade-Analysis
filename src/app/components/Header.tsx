@@ -8,13 +8,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { UserMenu } from "./UserMenu";
 
 interface HeaderProps {
   market: "US" | "CN";
   onMarketChange: (value: "US" | "CN") => void;
+  onNavigate?: (page: 'main' | 'history' | 'settings') => void;
 }
 
-export function Header({ market, onMarketChange }: HeaderProps) {
+export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
   
@@ -76,9 +78,11 @@ export function Header({ market, onMarketChange }: HeaderProps) {
                 <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
+            <UserMenu onNavigate={onNavigate} />
           </div>
         </div>
       </div>
     </header>
   );
 }
+
