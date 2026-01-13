@@ -38,7 +38,7 @@ export function UserMenu({ onNavigate }: UserMenuProps) {
       <>
         <button
           onClick={() => setAuthModalOpen(true)}
-          className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-800 dark:hover:bg-gray-100"
+          className="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200  text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
           {t('auth.signIn')}
         </button>
@@ -56,7 +56,7 @@ export function UserMenu({ onNavigate }: UserMenuProps) {
     <>
       <DropdownMenu.Root open={dropdownOpen} onOpenChange={setDropdownOpen}>
         <DropdownMenu.Trigger asChild>
-          <button className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500">
+          <button className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
             {user.photoURL ? (
               <img
                 src={user.photoURL}
