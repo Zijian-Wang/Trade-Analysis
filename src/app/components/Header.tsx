@@ -37,15 +37,20 @@ export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
               {t("header.subtitle")}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Unified Header Controls Container */}
+          <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50">
+            {/* Currency Selector */}
             <Select value={market} onValueChange={onMarketChange}>
-              <SelectTrigger className="w-[110px] h-9 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white border-gray-200 text-gray-900">
+              <SelectTrigger className="w-auto gap-1 h-8 px-3 rounded-full border-0 bg-transparent hover:bg-white/60 dark:hover:bg-gray-700/60 transition-all duration-200 text-gray-700 dark:text-gray-200 focus:ring-0 focus:ring-offset-0 shadow-none">
+                <span className={`font-semibold ${market === 'US' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {market === 'US' ? '$' : '¥'}
+                </span>
                 <SelectValue placeholder="Currency" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white">
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white rounded-xl shadow-xl border border-gray-200">
                 <SelectItem
                   value="US"
-                  className="dark:focus:bg-gray-700 dark:focus:text-white"
+                  className="dark:focus:bg-gray-700 dark:focus:text-white rounded-lg"
                 >
                   <div className="flex items-center">
                     <span className="w-5 text-center font-semibold text-emerald-500 mr-2">
@@ -56,7 +61,7 @@ export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
                 </SelectItem>
                 <SelectItem
                   value="CN"
-                  className="dark:focus:bg-gray-700 dark:focus:text-white"
+                  className="dark:focus:bg-gray-700 dark:focus:text-white rounded-lg"
                 >
                   <div className="flex items-center">
                     <span className="w-5 text-center font-semibold text-rose-500 mr-2">
@@ -67,17 +72,27 @@ export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
                 </SelectItem>
               </SelectContent>
             </Select>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-gray-300/60 dark:bg-gray-600/60" />
+
+            {/* Theme Toggle */}
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="p-2 sm:p-2.5 md:p-3 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
+              className="p-2 rounded-full transition-all duration-200 hover:bg-white/60 dark:hover:bg-gray-700/60 text-gray-600 dark:text-gray-300"
             >
               <span className="sr-only">Toggle theme</span>
               {isDark ? (
-                <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Sun className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
               ) : (
-                <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Moon className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
               )}
             </button>
+
+            {/* Divider */}
+            <div className="w-px h-5 bg-gray-300/60 dark:bg-gray-600/60" />
+
+            {/* User Menu */}
             <UserMenu onNavigate={onNavigate} />
           </div>
         </div>
