@@ -1,13 +1,17 @@
 import { useState, useCallback } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { useUserPreferences } from "../context/UserPreferencesContext";
 
 export function useMarketSettings() {
   const { setLanguage } = useLanguage();
-  
+  const { user } = useAuth();
+  const { preferences } = useUserPreferences();
+
   const [market, setMarket] = useState<"US" | "CN">(() => {
     try {
       if (typeof window === 'undefined') return "US";
-      
+
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       // Simple check for China timezones
       if (
@@ -38,20 +42,25 @@ export function useMarketSettings() {
     return "US";
   });
 
-  const [portfolioCapital, setPortfolioCapital] = useState(
-    market === "CN" ? 1500000 : 300000
-  );
+  // Default to 0 for guests (will be overridden by App.tsx if user has preferences)
+  const [portfolioCapital, setPortfolioCapital] = useState(0);
 
   const handleMarketChange = useCallback((value: "US" | "CN") => {
     setMarket(value);
-    if (value === "US") {
-      setPortfolioCapital(300000);
-      setLanguage('en');
-    } else {
-      setPortfolioCapital(1500000);
-      setLanguage('zh');
+
+    // Only sync language if:
+    // 1. User is not logged in (guest), OR
+    // 2. User has languageFollowsMarket preference enabled
+    const shouldSyncLanguage = !user || preferences.languageFollowsMarket;
+
+    if (shouldSyncLanguage) {
+      if (value === "US") {
+        setLanguage('en');
+      } else {
+        setLanguage('zh');
+      }
     }
-  }, [setLanguage]);
+  }, [setLanguage, user, preferences.languageFollowsMarket]);
 
   const detectMarketFromSymbol = useCallback((symbol: string) => {
     const trimmed = symbol.trim();
@@ -62,12 +71,10 @@ export function useMarketSettings() {
 
     if (isLetter && market !== 'US') {
       handleMarketChange('US');
-      setLanguage('en'); // Sync language with market
     } else if (isDigit && market !== 'CN') {
       handleMarketChange('CN');
-      setLanguage('zh'); // Sync language with market
     }
-  }, [market, handleMarketChange, setLanguage]);
+  }, [market, handleMarketChange]);
 
   return {
     market,
@@ -78,3 +85,4 @@ export function useMarketSettings() {
     currencySymbol: market === "US" ? "$" : "¥"
   };
 }
+

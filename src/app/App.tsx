@@ -1,30 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { TradeInputCard } from "./components/TradeInputCard";
 import { PositionSize } from "./components/PositionSize";
-import { TradeHistory } from "./components/TradeHistory";
+import { TradeHistory } from './components/TradeHistory';
+import { SettingsModal } from './components/SettingsModal';
+import { TradeHistoryPage } from './pages/TradeHistoryPage';
+import { EmailVerificationBanner } from './components/EmailVerificationBanner';
 import { ArrowUpRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Header } from "./components/Header";
+import { Toaster } from "sonner";
 
 // Hooks
 import { useTradeCalculator } from "./hooks/useTradeCalculator";
 import { useMarketSettings } from "./hooks/useMarketSettings";
+import { useAuth } from "./context/AuthContext";
+import { useUserPreferences } from "./context/UserPreferencesContext";
+
+// Services
+import { saveTrade, getTrades, deleteTrade, Trade } from "./services/tradeService";
 
 export default function App() {
   // Theme
   const { resolvedTheme } = useTheme();
-  // We use resolvedTheme to determine if we are in dark mode for logic that requires it
   const isDarkMode = resolvedTheme === "dark";
 
+  // Auth & Preferences
+  const { user } = useAuth();
+  const { preferences } = useUserPreferences();
+
+  // Navigation
+  const [currentPage, setCurrentPage] = useState<'main' | 'history' | 'settings'>('main');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   // Market & Portfolio Settings
-  const { 
-    market, 
-    setMarket, 
-    portfolioCapital, 
-    setPortfolioCapital, 
+  const {
+    market,
+    setMarket,
+    portfolioCapital,
+    setPortfolioCapital,
     detectMarketFromSymbol,
-    currencySymbol 
+    currencySymbol
   } = useMarketSettings();
+
+  // Apply default portfolio from preferences for guests (0) or logged-in users
+  useEffect(() => {
+    if (!user) {
+      // Guest: use 0 as default
+      setPortfolioCapital(0);
+    } else if (preferences.defaultPortfolio) {
+      // Logged in: use preferences
+      const defaultValue = market === 'US'
+        ? preferences.defaultPortfolio.US
+        : preferences.defaultPortfolio.CN;
+      if (defaultValue > 0) {
+        setPortfolioCapital(defaultValue);
+      }
+    }
+  }, [user, preferences.defaultPortfolio, market, setPortfolioCapital]);
 
   // Trade Calculator
   const {
@@ -40,16 +72,32 @@ export default function App() {
     setStopLoss,
     target,
     setTarget,
-    sentiment, 
+    sentiment,
     setSentiment,
     position,
   } = useTradeCalculator(portfolioCapital);
 
-  // Trade Logging
-  // Note: We might want to move this to a hook later too, but for now filtering is simple
-  const [loggedTrades, setLoggedTrades] = useState<any[]>([]);
+  // Trade History
+  const [loggedTrades, setLoggedTrades] = useState<Trade[]>([]);
+  const [, setTradesLoading] = useState(true);
 
-  const handleLogTrade = () => {
+  // Load trades on mount and when user changes
+  useEffect(() => {
+    const loadTrades = async () => {
+      setTradesLoading(true);
+      try {
+        const trades = await getTrades(user?.uid || null);
+        setLoggedTrades(trades);
+      } catch (error) {
+        console.error('Failed to load trades:', error);
+      } finally {
+        setTradesLoading(false);
+      }
+    };
+    loadTrades();
+  }, [user]);
+
+  const handleLogTrade = useCallback(async () => {
     if (!position.canCalculate) return;
 
     const today = new Date().toISOString().split('T')[0];
@@ -68,8 +116,7 @@ export default function App() {
       }
     }
 
-    const newTrade = {
-      id: Date.now().toString(),
+    const newTradeData = {
       date: today,
       symbol: tickerSymbol,
       direction,
@@ -81,24 +128,82 @@ export default function App() {
       positionSize: position.shares,
       riskAmount: position.riskAmount,
       rrRatio: position.rrRatio ?? null,
+      market,
     };
 
-    setLoggedTrades((prev) => [newTrade, ...prev]);
-  };
+    try {
+      const savedTrade = await saveTrade(user?.uid || null, newTradeData);
+      setLoggedTrades((prev) => [savedTrade, ...prev]);
+    } catch (error) {
+      console.error('Failed to save trade:', error);
+    }
+  }, [
+    position, tickerSymbol, entryPrice, stopLoss, direction,
+    sentiment, target, riskPerTrade, market, user, loggedTrades
+  ]);
 
-  const handleDeleteTrade = (id: string) => {
-    setLoggedTrades(prev => prev.filter(t => t.id !== id));
-  };
+  const handleDeleteTrade = useCallback(async (id: string) => {
+    try {
+      await deleteTrade(user?.uid || null, id);
+      setLoggedTrades(prev => prev.filter(t => t.id !== id));
+    } catch (error) {
+      console.error('Failed to delete trade:', error);
+    }
+  }, [user]);
 
   const handleTickerSymbolChange = (value: string) => {
     setTickerSymbol(value);
-    detectMarketFromSymbol(value);
+    // Only auto-switch market if not in single market mode
+    if (!preferences.singleMarketMode) {
+      detectMarketFromSymbol(value);
+    }
   };
 
+  const handleNavigate = (page: 'main' | 'history' | 'settings') => {
+    if (page === 'settings') {
+      setSettingsOpen(true);
+    } else {
+      setCurrentPage(page);
+    }
+  };
+
+  // Render trade history page
+  if (currentPage === 'history') {
+    return (
+      <>
+        <Toaster
+          position="top-center"
+          richColors
+          theme={isDarkMode ? 'dark' : 'light'}
+        />
+        <TradeHistoryPage
+          currencySymbol={currencySymbol}
+          loggedTrades={loggedTrades}
+          isDarkMode={isDarkMode}
+          onDeleteTrade={handleDeleteTrade}
+          onBack={() => setCurrentPage('main')}
+        />
+      </>
+    );
+  }
+
+  // Render main view
   return (
     <div className="min-h-screen transition-colors duration-300 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      
-      <Header market={market} onMarketChange={setMarket} />
+      <Toaster
+        position="top-center"
+        richColors
+        theme={isDarkMode ? 'dark' : 'light'}
+      />
+
+      <Header
+        market={market}
+        onMarketChange={setMarket}
+        onNavigate={handleNavigate}
+      />
+
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
 
       {/* Main Content */}
       <main className="max-w-[1260px] mx-auto px-4 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
@@ -147,7 +252,6 @@ export default function App() {
         </div>
 
         {/* Mobile Log Button - only visible on mobile */}
-        {/* We can extract this to a simpler component later if needed, leaving it here for now */}
         <div className="lg:hidden mt-3 sm:mt-4">
           <button
             onClick={handleLogTrade}
@@ -168,7 +272,7 @@ export default function App() {
         </div>
 
         {/* Trade History */}
-        <div className="mt-3 sm:mt-4 md:mt-6">
+        <div className="mt-3 sm:mt-4 md:mt-6 flex-1 flex flex-col min-h-0 pb-6">
           <TradeHistory
             currencySymbol={currencySymbol}
             loggedTrades={loggedTrades}
@@ -176,7 +280,10 @@ export default function App() {
             onDeleteTrade={handleDeleteTrade}
           />
         </div>
-      </main >
-    </div >
+      </main>
+
+      {/* Settings Modal */}
+      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+    </div>
   );
 }

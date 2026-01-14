@@ -8,16 +8,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import { UserMenu } from "./UserMenu";
 
 interface HeaderProps {
   market: "US" | "CN";
   onMarketChange: (value: "US" | "CN") => void;
+  onNavigate?: (page: 'main' | 'history' | 'settings') => void;
 }
 
-export function Header({ market, onMarketChange }: HeaderProps) {
+export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
-  
+
   // Determine if we are effectively in dark mode (handles 'system' preference)
   // Note: For simple UI toggles, usually checking theme === 'dark' is enough, 
   // but if we want to show the icon based on resolving system, we rely on standard behavior or user preference.
@@ -31,54 +33,51 @@ export function Header({ market, onMarketChange }: HeaderProps) {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight transition-colors dark:text-white text-gray-900">
               {t("header.title")}
             </h1>
-            <p className="text-xs sm:text-sm mt-0.5 sm:mt-1 transition-colors dark:text-gray-400 text-gray-500">
+            <p className="hidden sm:block text-sm mt-1 transition-colors dark:text-gray-400 text-gray-500">
               {t("header.subtitle")}
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          {/* Header Controls */}
+          <div className="flex items-center gap-1 sm:gap-2">
+            {/* Theme Toggle */}
+            <button
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">
+              <span className="sr-only">Toggle theme</span>
+              {isDark ? (
+                <Sun className="w-[18px] h-[18px]" />
+              ) : (
+                <Moon className="w-[18px] h-[18px]" />
+              )}
+            </button>
+
+            {/* Market Selector */}
             <Select value={market} onValueChange={onMarketChange}>
-              <SelectTrigger className="w-[110px] h-9 transition-colors dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white border-gray-200 text-gray-900">
-                <SelectValue placeholder="Currency" />
+              <SelectTrigger className="w-auto gap-1.5 h-9 px-3 rounded-lg border-0 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 text-gray-700 dark:text-gray-200 focus:ring-0 focus:ring-offset-0 shadow-none">
+                <SelectValue placeholder="Market" />
               </SelectTrigger>
-              <SelectContent className="dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white">
+              <SelectContent className="dark:bg-gray-800 dark:border-gray-700 dark:text-white bg-white rounded-xl shadow-xl border border-gray-200">
                 <SelectItem
                   value="US"
-                  className="dark:focus:bg-gray-700 dark:focus:text-white"
+                  className="dark:focus:bg-gray-700 dark:focus:text-white rounded-lg"
                 >
-                  <div className="flex items-center">
-                    <span className="w-5 text-center font-semibold text-emerald-500 mr-2">
-                      $
-                    </span>
-                    <span>USD</span>
-                  </div>
+                  US
                 </SelectItem>
                 <SelectItem
                   value="CN"
-                  className="dark:focus:bg-gray-700 dark:focus:text-white"
+                  className="dark:focus:bg-gray-700 dark:focus:text-white rounded-lg"
                 >
-                  <div className="flex items-center">
-                    <span className="w-5 text-center font-semibold text-rose-500 mr-2">
-                      ¥
-                    </span>
-                    <span>CNY</span>
-                  </div>
+                  CN
                 </SelectItem>
               </SelectContent>
             </Select>
-            <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="p-2 sm:p-2.5 md:p-3 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
-            >
-              <span className="sr-only">Toggle theme</span>
-              {isDark ? (
-                <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-              ) : (
-                <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-              )}
-            </button>
+
+            {/* User Menu */}
+            <UserMenu onNavigate={onNavigate} />
           </div>
         </div>
       </div>
     </header>
   );
 }
+
