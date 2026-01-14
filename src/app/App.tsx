@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { TradeInputCard } from "./components/TradeInputCard";
 import { PositionSize } from "./components/PositionSize";
-import { TradeHistory } from "./components/TradeHistory";
-import { SettingsModal } from "./components/SettingsModal";
+import { TradeHistory } from './components/TradeHistory';
+import { SettingsModal } from './components/SettingsModal';
+import { TradeHistoryPage } from './pages/TradeHistoryPage';
+import { EmailVerificationBanner } from './components/EmailVerificationBanner';
 import { ArrowUpRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Header } from "./components/Header";
@@ -27,17 +29,17 @@ export default function App() {
   const { preferences } = useUserPreferences();
 
   // Navigation
-  const [, setCurrentPage] = useState<'main' | 'history' | 'settings'>('main');
+  const [currentPage, setCurrentPage] = useState<'main' | 'history' | 'settings'>('main');
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Market & Portfolio Settings
-  const { 
-    market, 
-    setMarket, 
-    portfolioCapital, 
-    setPortfolioCapital, 
+  const {
+    market,
+    setMarket,
+    portfolioCapital,
+    setPortfolioCapital,
     detectMarketFromSymbol,
-    currencySymbol 
+    currencySymbol
   } = useMarketSettings();
 
   // Apply default portfolio from preferences for guests (0) or logged-in users
@@ -47,8 +49,8 @@ export default function App() {
       setPortfolioCapital(0);
     } else if (preferences.defaultPortfolio) {
       // Logged in: use preferences
-      const defaultValue = market === 'US' 
-        ? preferences.defaultPortfolio.US 
+      const defaultValue = market === 'US'
+        ? preferences.defaultPortfolio.US
         : preferences.defaultPortfolio.CN;
       if (defaultValue > 0) {
         setPortfolioCapital(defaultValue);
@@ -70,7 +72,7 @@ export default function App() {
     setStopLoss,
     target,
     setTarget,
-    sentiment, 
+    sentiment,
     setSentiment,
     position,
   } = useTradeCalculator(portfolioCapital);
@@ -136,7 +138,7 @@ export default function App() {
       console.error('Failed to save trade:', error);
     }
   }, [
-    position, tickerSymbol, entryPrice, stopLoss, direction, 
+    position, tickerSymbol, entryPrice, stopLoss, direction,
     sentiment, target, riskPerTrade, market, user, loggedTrades
   ]);
 
@@ -165,19 +167,43 @@ export default function App() {
     }
   };
 
+  // Render trade history page
+  if (currentPage === 'history') {
+    return (
+      <>
+        <Toaster
+          position="top-center"
+          richColors
+          theme={isDarkMode ? 'dark' : 'light'}
+        />
+        <TradeHistoryPage
+          currencySymbol={currencySymbol}
+          loggedTrades={loggedTrades}
+          isDarkMode={isDarkMode}
+          onDeleteTrade={handleDeleteTrade}
+          onBack={() => setCurrentPage('main')}
+        />
+      </>
+    );
+  }
+
+  // Render main view
   return (
     <div className="min-h-screen transition-colors duration-300 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      <Toaster 
-        position="top-center" 
-        richColors 
+      <Toaster
+        position="top-center"
+        richColors
         theme={isDarkMode ? 'dark' : 'light'}
       />
-      
-      <Header 
-        market={market} 
-        onMarketChange={setMarket} 
+
+      <Header
+        market={market}
+        onMarketChange={setMarket}
         onNavigate={handleNavigate}
       />
+
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
 
       {/* Main Content */}
       <main className="max-w-[1260px] mx-auto px-4 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
@@ -246,7 +272,7 @@ export default function App() {
         </div>
 
         {/* Trade History */}
-        <div className="mt-3 sm:mt-4 md:mt-6">
+        <div className="mt-3 sm:mt-4 md:mt-6 flex-1 flex flex-col min-h-0 pb-6">
           <TradeHistory
             currencySymbol={currencySymbol}
             loggedTrades={loggedTrades}

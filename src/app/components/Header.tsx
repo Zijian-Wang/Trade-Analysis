@@ -19,7 +19,7 @@ interface HeaderProps {
 export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
-  
+
   // Determine if we are effectively in dark mode (handles 'system' preference)
   // Note: For simple UI toggles, usually checking theme === 'dark' is enough, 
   // but if we want to show the icon based on resolving system, we rely on standard behavior or user preference.
@@ -33,17 +33,16 @@ export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight transition-colors dark:text-white text-gray-900">
               {t("header.title")}
             </h1>
-            <p className="text-xs sm:text-sm mt-0.5 sm:mt-1 transition-colors dark:text-gray-400 text-gray-500">
+            <p className="hidden sm:block text-sm mt-1 transition-colors dark:text-gray-400 text-gray-500">
               {t("header.subtitle")}
             </p>
           </div>
           {/* Header Controls */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             {/* Theme Toggle */}
             <button
               onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400"
-            >
+              className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">
               <span className="sr-only">Toggle theme</span>
               {isDark ? (
                 <Sun className="w-[18px] h-[18px]" />

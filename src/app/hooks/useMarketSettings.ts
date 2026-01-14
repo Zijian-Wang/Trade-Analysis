@@ -1,13 +1,17 @@
 import { useState, useCallback } from "react";
 import { useLanguage } from "../context/LanguageContext";
+import { useAuth } from "../context/AuthContext";
+import { useUserPreferences } from "../context/UserPreferencesContext";
 
 export function useMarketSettings() {
   const { setLanguage } = useLanguage();
-  
+  const { user } = useAuth();
+  const { preferences } = useUserPreferences();
+
   const [market, setMarket] = useState<"US" | "CN">(() => {
     try {
       if (typeof window === 'undefined') return "US";
-      
+
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
       // Simple check for China timezones
       if (
@@ -41,17 +45,22 @@ export function useMarketSettings() {
   // Default to 0 for guests (will be overridden by App.tsx if user has preferences)
   const [portfolioCapital, setPortfolioCapital] = useState(0);
 
-  const handleMarketChange = useCallback((value: "US" | "CN", syncLanguage = true) => {
+  const handleMarketChange = useCallback((value: "US" | "CN") => {
     setMarket(value);
-    // Only sync language if caller requests it
-    if (syncLanguage) {
+
+    // Only sync language if:
+    // 1. User is not logged in (guest), OR
+    // 2. User has languageFollowsMarket preference enabled
+    const shouldSyncLanguage = !user || preferences.languageFollowsMarket;
+
+    if (shouldSyncLanguage) {
       if (value === "US") {
         setLanguage('en');
       } else {
         setLanguage('zh');
       }
     }
-  }, [setLanguage]);
+  }, [setLanguage, user, preferences.languageFollowsMarket]);
 
   const detectMarketFromSymbol = useCallback((symbol: string) => {
     const trimmed = symbol.trim();

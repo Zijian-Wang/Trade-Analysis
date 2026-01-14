@@ -14,6 +14,10 @@ import {
   GoogleAuthProvider,
   signInWithPopup,
   updateProfile,
+  updateEmail,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  sendEmailVerification as firebaseSendEmailVerification,
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase';
@@ -25,6 +29,9 @@ interface AuthContextType {
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
+  updateDisplayName: (newDisplayName: string) => Promise<void>;
+  updateUserEmail: (newEmail: string, currentPassword: string) => Promise<void>;
+  resendVerificationEmail: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +82,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const result = await createUserWithEmailAndPassword(auth, email, password);
     // Update the display name
     await updateProfile(result.user, { displayName });
+    // Send email verification
+    await firebaseSendEmailVerification(result.user);
   };
 
   const signInWithGoogle = async () => {
@@ -86,9 +95,42 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await firebaseSignOut(auth);
   };
 
+  const updateDisplayName = async (newDisplayName: string) => {
+    if (!user) throw new Error('No user logged in');
+
+    // Update Firebase Auth profile
+    await updateProfile(user, { displayName: newDisplayName });
+
+    // Update Firestore user document
+    const userDocRef = doc(db, 'users', user.uid);
+    await setDoc(userDocRef, { displayName: newDisplayName }, { merge: true });
+  };
+
+  const updateUserEmail = async (newEmail: string, currentPassword: string) => {
+    if (!user || !user.email) throw new Error('No user logged in');
+
+    // Re-authenticate user before changing email (Firebase security requirement)
+    const credential = EmailAuthProvider.credential(user.email, currentPassword);
+    await reauthenticateWithCredential(user, credential);
+
+    // Update email in Firebase Auth
+    await updateEmail(user, newEmail);
+
+    // Update Firestore user document
+    const userDocRef = doc(db, 'users', user.uid);
+    await setDoc(userDocRef, { email: newEmail }, { merge: true });
+  };
+
+  const resendVerificationEmail = async () => {
+    if (!user) throw new Error('No user logged in');
+    if (user.emailVerified) throw new Error('Email already verified');
+
+    await firebaseSendEmailVerification(user);
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, signIn, signUp, signInWithGoogle, signOut }}
+      value={{ user, loading, signIn, signUp, signInWithGoogle, signOut, updateDisplayName, updateUserEmail, resendVerificationEmail }}
     >
       {children}
     </AuthContext.Provider>

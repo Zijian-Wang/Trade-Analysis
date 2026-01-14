@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs from '@radix-ui/react-tabs';
-import * as Switch from '@radix-ui/react-switch';
 import { X, User, Settings as SettingsIcon, Shield, Loader2, Check } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useUserPreferences, UserPreferences } from '../context/UserPreferencesContext';
@@ -13,18 +12,47 @@ interface SettingsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type MarketPreference = 'US' | 'CN' | 'both';
+type LanguagePreference = 'en' | 'zh' | 'auto';
+
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
-  const { t } = useLanguage();
+  const { t, setLanguage } = useLanguage();
   const { user } = useAuth();
   const { preferences, updatePreferences } = useUserPreferences();
-  
+
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'account'>('preferences');
   const [loading, setLoading] = useState(false);
   const [localPrefs, setLocalPrefs] = useState<UserPreferences>(preferences);
 
+  // Market preference state (derived from singleMarketMode)
+  const [marketPreference, setMarketPreference] = useState<MarketPreference>('both');
+  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>('auto');
+
+  // Profile update state
+  const { updateDisplayName, updateUserEmail } = useAuth();
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
+  // Initialize inputs when user changes
+  useEffect(() => {
+    if (user) {
+      setDisplayNameInput(user.displayName || '');
+      setEmailInput(user.email || '');
+    }
+  }, [user]);
+
   // Sync local state when preferences change
   useEffect(() => {
     setLocalPrefs(preferences);
+    // Derive market preference
+    if (preferences.singleMarketMode) {
+      setMarketPreference('US'); // Default to US for single market
+    } else {
+      setMarketPreference('both');
+    }
   }, [preferences]);
 
   const handleSave = async () => {
@@ -48,6 +76,79 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         [market]: numValue,
       },
     });
+  };
+
+  const handleMarketPreferenceChange = (market: MarketPreference) => {
+    setMarketPreference(market);
+    setLocalPrefs({
+      ...localPrefs,
+      singleMarketMode: market !== 'both',
+    });
+  };
+
+  const handleLanguagePreferenceChange = (lang: LanguagePreference) => {
+    setLanguagePreference(lang);
+    if (lang === 'auto') {
+      setLocalPrefs({
+        ...localPrefs,
+        languageFollowsMarket: true,
+      });
+    } else {
+      setLocalPrefs({
+        ...localPrefs,
+        languageFollowsMarket: false,
+      });
+      setLanguage(lang);
+    }
+  };
+
+  const handleUpdateDisplayName = async () => {
+    if (!displayNameInput.trim()) return;
+
+    setProfileLoading(true);
+    setProfileError('');
+
+    try {
+      await updateDisplayName(displayNameInput.trim());
+      toast.success('Display name updated successfully');
+    } catch (err: any) {
+      setProfileError(err.message || 'Failed to update display name');
+      toast.error('Failed to update display name');
+    } finally {
+      setProfileLoading(false);
+    }
+  };
+
+  const handleUpdateEmail = async () => {
+    if (!emailInput.trim() || !currentPassword.trim()) return;
+
+    setProfileLoading(true);
+    setProfileError('');
+
+    try {
+      await updateUserEmail(emailInput.trim(), currentPassword);
+      toast.success('Email updated successfully');
+      setCurrentPassword(''); // Clear password after success
+    } catch (err: any) {
+      let errorMessage = 'Failed to update email';
+
+      if (err.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password';
+      } else if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already in use';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email format';
+      } else if (err.code === 'auth/requires-recent-login') {
+        errorMessage = 'Please sign out and sign in again before changing your email';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setProfileError(errorMessage);
+      toast.error(errorMessage);
+    } finally {
+      setProfileLoading(false);
+    }
   };
 
   return (
@@ -94,75 +195,95 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
 
             {/* Preferences Tab */}
             <Tabs.Content value="preferences" className="space-y-6">
-              {/* Market Mode */}
+              {/* Market Selection - Pill Shaped */}
               <div className="space-y-3">
                 <label className="text-sm font-medium text-gray-900 dark:text-white">
-                  {t('settings.marketMode')}
+                  Market Selection
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Choose which markets you want to trade in
+                </p>
+                <div className="inline-flex bg-gray-100 dark:bg-gray-700 p-1 rounded-full w-full">
                   <button
-                    onClick={() => setLocalPrefs({ ...localPrefs, singleMarketMode: true })}
-                    className={`p-4 rounded-xl border-2 transition-colors text-left ${
-                      localPrefs.singleMarketMode
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
+                    onClick={() => handleMarketPreferenceChange('US')}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${marketPreference === 'US'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {t('settings.singleMarket')}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t('settings.singleMarketDesc')}
-                    </p>
+                    US
                   </button>
                   <button
-                    onClick={() => setLocalPrefs({ ...localPrefs, singleMarketMode: false })}
-                    className={`p-4 rounded-xl border-2 transition-colors text-left ${
-                      !localPrefs.singleMarketMode
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'
-                    }`}
+                    onClick={() => handleMarketPreferenceChange('CN')}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${marketPreference === 'CN'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
-                    <p className="font-medium text-gray-900 dark:text-white text-sm">
-                      {t('settings.multiMarket')}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {t('settings.multiMarketDesc')}
-                    </p>
+                    China
+                  </button>
+                  <button
+                    onClick={() => handleMarketPreferenceChange('both')}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${marketPreference === 'both'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                  >
+                    Both
                   </button>
                 </div>
               </div>
 
-              {/* Language Sync */}
-              <div className="flex items-center justify-between py-3 border-t border-gray-100 dark:border-gray-700">
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {t('settings.languageSync')}
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                    {t('settings.languageSyncDesc')}
-                  </p>
-                </div>
-                <Switch.Root
-                  checked={localPrefs.languageFollowsMarket}
-                  onCheckedChange={(checked) =>
-                    setLocalPrefs({ ...localPrefs, languageFollowsMarket: checked })
-                  }
-                  className="w-11 h-6 bg-gray-200 dark:bg-gray-600 rounded-full relative data-[state=checked]:bg-blue-500 transition-colors"
-                >
-                  <Switch.Thumb className="block w-5 h-5 bg-white rounded-full shadow-md transition-transform translate-x-0.5 will-change-transform data-[state=checked]:translate-x-[22px]" />
-                </Switch.Root>
-              </div>
-
-              {/* Default Portfolio */}
+              {/* Language Selection - Pill Shaped */}
               <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                 <label className="text-sm font-medium text-gray-900 dark:text-white">
-                  {t('settings.defaultPortfolio')}
+                  Language
                 </label>
-                <div className="grid grid-cols-2 gap-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Select your preferred language for the interface
+                </p>
+                <div className="inline-flex bg-gray-100 dark:bg-gray-700 p-1 rounded-full w-full">
+                  <button
+                    onClick={() => handleLanguagePreferenceChange('en')}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${languagePreference === 'en'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    onClick={() => handleLanguagePreferenceChange('zh')}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${languagePreference === 'zh'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                  >
+                    CH
+                  </button>
+                  <button
+                    onClick={() => handleLanguagePreferenceChange('auto')}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${languagePreference === 'auto'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
+                  >
+                    Auto
+                  </button>
+                </div>
+              </div>
+
+              {/* Default Portfolio - Conditional by market */}
+              <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                <label className="text-sm font-medium text-gray-900 dark:text-white">
+                  Default Portfolio Capital
+                </label>
+
+                {/* US Portfolio */}
+                {(marketPreference === 'US' || marketPreference === 'both') && (
                   <div>
                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">
-                      {t('settings.usPortfolio')}
+                      US Portfolio
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-emerald-500 font-medium">
@@ -172,13 +293,18 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                         type="text"
                         value={localPrefs.defaultPortfolio.US.toLocaleString()}
                         onChange={(e) => handlePortfolioChange('US', e.target.value)}
-                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        placeholder="0"
+                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       />
                     </div>
                   </div>
+                )}
+
+                {/* CN Portfolio */}
+                {(marketPreference === 'CN' || marketPreference === 'both') && (
                   <div>
                     <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">
-                      {t('settings.cnPortfolio')}
+                      China Portfolio
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-500 font-medium">
@@ -188,11 +314,12 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                         type="text"
                         value={localPrefs.defaultPortfolio.CN.toLocaleString()}
                         onChange={(e) => handlePortfolioChange('CN', e.target.value)}
-                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
+                        placeholder="0"
+                        className="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       />
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               {/* Save Button */}
@@ -211,30 +338,86 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             </Tabs.Content>
 
             {/* Profile Tab */}
-            <Tabs.Content value="profile" className="space-y-4">
+            <Tabs.Content value="profile" className="space-y-6">
               {user && (
                 <>
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">
+                  {/* Display Name Section */}
+                  <div className="space-y-3">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
                       {t('settings.displayName')}
                     </label>
-                    <input
-                      type="text"
-                      value={user.displayName || ''}
-                      readOnly
-                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed"
-                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      This is how your name will appear in the app
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={displayNameInput}
+                        onChange={(e) => setDisplayNameInput(e.target.value)}
+                        className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        placeholder="Enter display name"
+                      />
+                      <button
+                        onClick={handleUpdateDisplayName}
+                        disabled={profileLoading || !displayNameInput.trim() || displayNameInput === user.displayName}
+                        className="px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                      >
+                        {profileLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Check className="w-4 h-4" />
+                        )}
+                        Save
+                      </button>
+                    </div>
+                    {profileError && (
+                      <p className="text-sm text-rose-600 dark:text-rose-400">{profileError}</p>
+                    )}
                   </div>
-                  <div>
-                    <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1.5">
+
+                  {/* Email Section */}
+                  <div className="space-y-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <label className="text-sm font-medium text-gray-900 dark:text-white">
                       {t('settings.email')}
                     </label>
-                    <input
-                      type="email"
-                      value={user.email || ''}
-                      readOnly
-                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white text-sm cursor-not-allowed"
-                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Changing your email requires password confirmation
+                    </p>
+                    <div className="space-y-2">
+                      <input
+                        type="email"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        placeholder="Enter new email"
+                      />
+                      {emailInput !== user.email && emailInput.trim() && (
+                        <div className="flex gap-2">
+                          <input
+                            type="password"
+                            value={currentPassword}
+                            onChange={(e) => setCurrentPassword(e.target.value)}
+                            className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                            placeholder="Current password (required)"
+                          />
+                          <button
+                            onClick={handleUpdateEmail}
+                            disabled={profileLoading || !currentPassword.trim()}
+                            className="px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                          >
+                            {profileLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Check className="w-4 h-4" />
+                            )}
+                            Update Email
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {profileError && emailInput !== user.email && (
+                      <p className="text-sm text-rose-600 dark:text-rose-400">{profileError}</p>
+                    )}
                   </div>
                 </>
               )}

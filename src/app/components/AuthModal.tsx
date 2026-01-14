@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import * as Tabs from '@radix-ui/react-tabs';
-import { X, Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { toast } from 'sonner';
@@ -12,10 +12,29 @@ interface AuthModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Email validation helper
+const validateEmail = (email: string): string | null => {
+  if (!email) return null;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return 'Please enter a valid email address';
+  }
+  return null;
+};
+
+// Password validation helper
+const validatePassword = (password: string, isSignUp: boolean = false): string | null => {
+  if (!password) return null;
+  if (password.length < 6) {
+    return isSignUp ? 'Password must be at least 6 characters' : 'Invalid password';
+  }
+  return null;
+};
+
 export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const { t } = useLanguage();
   const { signIn, signUp, signInWithGoogle, user } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,12 +43,51 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Validation states
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [passwordTouched, setPasswordTouched] = useState(false);
+  const [displayNameTouched, setDisplayNameTouched] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+
+  // Real-time email validation
+  useEffect(() => {
+    if (emailTouched) {
+      setEmailError(validateEmail(email));
+    }
+  }, [email, emailTouched]);
+
+  // Real-time password validation
+  useEffect(() => {
+    if (passwordTouched) {
+      setPasswordError(validatePassword(password, activeTab === 'register'));
+    }
+  }, [password, passwordTouched, activeTab]);
+
+  // Real-time display name validation
+  useEffect(() => {
+    if (displayNameTouched && activeTab === 'register') {
+      if (!displayName || displayName.trim().length === 0) {
+        setDisplayNameError('Display name is required');
+      } else {
+        setDisplayNameError(null);
+      }
+    }
+  }, [displayName, displayNameTouched, activeTab]);
+
   const resetForm = () => {
     setEmail('');
     setPassword('');
     setDisplayName('');
     setError('');
     setShowPassword(false);
+    setEmailTouched(false);
+    setPasswordTouched(false);
+    setDisplayNameTouched(false);
+    setEmailError(null);
+    setPasswordError(null);
+    setDisplayNameError(null);
   };
 
   const handleMigrateTrades = async () => {
@@ -49,6 +107,19 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate before submit
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password, false);
+
+    if (emailErr || passwordErr) {
+      setEmailTouched(true);
+      setPasswordTouched(true);
+      setEmailError(emailErr);
+      setPasswordError(passwordErr);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -58,7 +129,24 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       resetForm();
       toast.success(t('auth.loginSuccess'));
     } catch (err: any) {
-      setError(err.message || t('auth.loginError'));
+      // Handle Firebase-specific errors with user-friendly messages
+      let errorMessage = t('auth.loginError');
+
+      if (err.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up first.';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address format.';
+      } else if (err.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled.';
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -67,6 +155,19 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate before submit
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password, true);
+
+    if (emailErr || passwordErr) {
+      setEmailTouched(true);
+      setPasswordTouched(true);
+      setEmailError(emailErr);
+      setPasswordError(passwordErr);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -74,9 +175,24 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
       await handleMigrateTrades();
       onOpenChange(false);
       resetForm();
-      toast.success(t('auth.registerSuccess'));
+      toast.success('Account created! Please check your email to verify your account.');
     } catch (err: any) {
-      setError(err.message || t('auth.registerError'));
+      // Handle Firebase-specific errors with user-friendly messages
+      let errorMessage = t('auth.registerError');
+
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please sign in instead.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address format.';
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please use at least 6 characters.';
+      } else if (err.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -99,6 +215,17 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
     }
   };
 
+  const handleTabChange = (value: string) => {
+    setActiveTab(value as 'login' | 'register');
+    setError('');
+    setEmailError(null);
+    setPasswordError(null);
+    setDisplayNameError(null);
+    setEmailTouched(false);
+    setPasswordTouched(false);
+    setDisplayNameTouched(false);
+  };
+
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -112,7 +239,7 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </Dialog.Close>
 
-          <Tabs.Root value={activeTab} onValueChange={(v) => { setActiveTab(v as 'login' | 'register'); setError(''); }}>
+          <Tabs.Root value={activeTab} onValueChange={handleTabChange}>
             <Tabs.List className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
               <Tabs.Trigger
                 value="login"
@@ -129,42 +256,65 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             </Tabs.List>
 
             {error && (
-              <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg text-sm text-rose-700 dark:text-rose-300">
-                {error}
+              <div className="mb-4 p-3 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 dark:border-rose-800 rounded-lg flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-rose-700 dark:text-rose-300">{error}</span>
               </div>
             )}
 
             <Tabs.Content value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth.email')}
-                    required
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
+              <form onSubmit={handleLogin} className="space-y-4" noValidate>
+                <div>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => setEmailTouched(true)}
+                      placeholder={t('auth.email')}
+                      className={`w-full pl-11 pr-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${emailError && emailTouched
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : 'border-gray-200 dark:border-gray-600'
+                        }`}
+                    />
+                  </div>
+                  {emailError && emailTouched && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{emailError}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth.password')}
-                    required
-                    className="w-full pl-11 pr-11 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+                <div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => setPasswordTouched(true)}
+                      placeholder={t('auth.password')}
+                      className={`w-full pl-11 pr-11 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${passwordError && passwordTouched
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : 'border-gray-200 dark:border-gray-600'
+                        }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {passwordError && passwordTouched && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{passwordError}</span>
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -179,49 +329,87 @@ export function AuthModal({ open, onOpenChange }: AuthModalProps) {
             </Tabs.Content>
 
             <Tabs.Content value="register">
-              <form onSubmit={handleRegister} className="space-y-4">
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder={t('auth.displayName')}
-                    required
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
+              <form onSubmit={handleRegister} className="space-y-4" noValidate>
+                <div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      onBlur={() => setDisplayNameTouched(true)}
+                      placeholder={t('auth.displayName')}
+                      className={`w-full pl-11 pr-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${displayNameError && displayNameTouched
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : 'border-gray-200 dark:border-gray-600'
+                        }`}
+                    />
+                  </div>
+                  {displayNameError && displayNameTouched && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{displayNameError}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={t('auth.email')}
-                    required
-                    className="w-full pl-11 pr-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
+                <div>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onBlur={() => setEmailTouched(true)}
+                      placeholder={t('auth.email')}
+                      className={`w-full pl-11 pr-4 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${emailError && emailTouched
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : 'border-gray-200 dark:border-gray-600'
+                        }`}
+                    />
+                  </div>
+                  {emailError && emailTouched && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{emailError}</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder={t('auth.password')}
-                    required
-                    minLength={6}
-                    className="w-full pl-11 pr-11 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+                <div>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      onBlur={() => setPasswordTouched(true)}
+                      placeholder={t('auth.password')}
+                      minLength={6}
+                      className={`w-full pl-11 pr-11 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${passwordError && passwordTouched
+                        ? 'border-rose-500 dark:border-rose-500'
+                        : 'border-gray-200 dark:border-gray-600'
+                        }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {passwordError && passwordTouched && (
+                    <div className="mt-1.5 flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm">{passwordError}</span>
+                    </div>
+                  )}
+                  {!passwordError && activeTab === 'register' && (
+                    <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      Password must be at least 6 characters
+                    </p>
+                  )}
                 </div>
 
                 <button
