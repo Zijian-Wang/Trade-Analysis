@@ -59,85 +59,85 @@ export function TradeInputCard({
   const [isPortfolioFocused, setIsPortfolioFocused] = useState(false);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
-    
-  const [riskInputValue, setRiskInputValue] = useState(riskPerTrade.toFixed(2));
-    const [isRiskFocused, setIsRiskFocused] = useState(false);
 
-    // Sync risk input value with prop when not focused (e.g. when slider moves)
-    useEffect(() => {
-      if (!isRiskFocused) {
-        setRiskInputValue(riskPerTrade.toFixed(2));
+  const [riskInputValue, setRiskInputValue] = useState(riskPerTrade.toFixed(2));
+  const [isRiskFocused, setIsRiskFocused] = useState(false);
+
+  // Sync risk input value with prop when not focused (e.g. when slider moves)
+  useEffect(() => {
+    if (!isRiskFocused) {
+      setRiskInputValue(riskPerTrade.toFixed(2));
+    }
+  }, [riskPerTrade, isRiskFocused]);
+
+
+  // Auto-fetch price when ticker changes and not typing
+  useEffect(() => {
+    const fetchPrice = async () => {
+      const symbol = tickerSymbol.trim();
+      if (!symbol || isTyping) return;
+
+      const isUS = market === 'US' || /^[a-zA-Z]+$/.test(symbol);
+      const isChinese = market === 'CN' || /^\d+$/.test(symbol);
+
+      let chineseSuffix = '';
+      if (isChinese) {
+        if (/^[56]/.test(symbol)) {
+          chineseSuffix = '.SHH';
+        } else if (/^\d+$/.test(symbol) && !symbol.startsWith('920')) {
+          chineseSuffix = '.SHZ';
+        }
       }
-    }, [riskPerTrade, isRiskFocused]);
-  
-  
-      // Auto-fetch price when ticker changes and not typing
-      useEffect(() => {
-        const fetchPrice = async () => {
-          const symbol = tickerSymbol.trim();
-          if (!symbol || isTyping) return;
-    
-          const isUS = market === 'US' || /^[a-zA-Z]+$/.test(symbol);
-          const isChinese = market === 'CN' || /^\d+$/.test(symbol);
-          
-          let chineseSuffix = '';
-          if (isChinese) {
-            if (/^[56]/.test(symbol)) {
-              chineseSuffix = '.SHH';
-            } else if (/^\d+$/.test(symbol) && !symbol.startsWith('920')) {
-              chineseSuffix = '.SHZ';
+
+      // Only proceed if it's a recognized US stock or a valid Chinese stock code
+      if (!isUS && !chineseSuffix) {
+        return;
+      }
+
+      setIsFetchingPrice(true);
+      try {
+        if (chineseSuffix) {
+          const querySymbol = `${symbol}${chineseSuffix}`;
+          const apiKey = import.meta.env.VITE_ALPHAVANTAGE_API_KEY;
+          const response = await fetch(`/api/alphavantage/query?function=GLOBAL_QUOTE&symbol=${querySymbol}&apikey=${apiKey}`);
+
+          if (response.ok) {
+            const data = await response.json();
+            const price = parseFloat(data['Global Quote']?.['05. price']);
+            if (!isNaN(price) && price > 0) {
+              setEntryPrice(price);
             }
           }
+        } else if (isUS) {
+          const querySymbol = `${symbol}.US`;
+          // Use the local proxy /api/stooq which maps to https://stooq.com
+          const response = await fetch(`/api/stooq/q/l/?s=${querySymbol}&f=sd2t2ohlcv&h&e=csv`);
 
-          // Only proceed if it's a recognized US stock or a valid Chinese stock code
-          if (!isUS && !chineseSuffix) {
-            return;
-          }
+          if (response.ok) {
+            const text = await response.text();
+            const lines = text.trim().split('\n');
 
-          setIsFetchingPrice(true);
-          try {
-            if (chineseSuffix) {
-              const querySymbol = `${symbol}${chineseSuffix}`;
-              const apiKey = import.meta.env.VITE_ALPHAVANTAGE_API_KEY;
-              const response = await fetch(`/api/alphavantage/query?function=GLOBAL_QUOTE&symbol=${querySymbol}&apikey=${apiKey}`);
-              
-              if (response.ok) {
-                const data = await response.json();
-                const price = parseFloat(data['Global Quote']?.['05. price']);
+            if (lines.length >= 2) {
+              const headers = lines[0].split(',');
+              const values = lines[1].split(',');
+              const closeIndex = headers.findIndex(h => h.trim() === 'Close');
+
+              if (closeIndex !== -1 && values[closeIndex]) {
+                const price = parseFloat(values[closeIndex]);
                 if (!isNaN(price) && price > 0) {
                   setEntryPrice(price);
                 }
               }
-            } else if (isUS) {
-              const querySymbol = `${symbol}.US`;
-              // Use the local proxy /api/stooq which maps to https://stooq.com
-              const response = await fetch(`/api/stooq/q/l/?s=${querySymbol}&f=sd2t2ohlcv&h&e=csv`);
-              
-              if (response.ok) {
-                const text = await response.text();
-                const lines = text.trim().split('\n');
-                
-                if (lines.length >= 2) {
-                  const headers = lines[0].split(',');
-                  const values = lines[1].split(',');
-                  const closeIndex = headers.findIndex(h => h.trim() === 'Close');
-                  
-                  if (closeIndex !== -1 && values[closeIndex]) {
-                     const price = parseFloat(values[closeIndex]);
-                     if (!isNaN(price) && price > 0) {
-                       setEntryPrice(price);
-                     }
-                  }
-                }
-              }
             }
-          } catch (error) {
-            console.error('Failed to fetch stock price:', error);
-          } finally {
-            setIsFetchingPrice(false);
           }
-        };
-    
+        }
+      } catch (error) {
+        console.error('Failed to fetch stock price:', error);
+      } finally {
+        setIsFetchingPrice(false);
+      }
+    };
+
     const timeoutId = setTimeout(fetchPrice, 1000);
     return () => clearTimeout(timeoutId);
   }, [tickerSymbol, setEntryPrice, isTyping, market]);
@@ -197,11 +197,11 @@ export function TradeInputCard({
       setRiskInputValue(riskPerTrade.toFixed(2));
       return;
     }
-    
+
     // Clip between 0.5 and 1.0
     if (val < 0.5) val = 0.5;
     if (val > 1.0) val = 1.0;
-    
+
     setRiskPerTrade(val);
     setRiskInputValue(val.toFixed(2));
   };
@@ -223,10 +223,10 @@ export function TradeInputCard({
             <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.portfolioCapital')}</Label>
             <div className="relative">
               <span className={`absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-300'
-                                  }
+                }
                                   `}>
-                                {currencySymbol}</span>
-                                <Input                type="text"
+                {currencySymbol}</span>
+              <Input type="text"
                 value={isPortfolioFocused ? portfolioInputValue : portfolioCapital.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 onChange={handlePortfolioChange}
                 onFocus={handlePortfolioFocus}
@@ -324,9 +324,9 @@ export function TradeInputCard({
               <button
                 onClick={() => setDirection('long')}
                 className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${direction === 'long'
-                  ? (market === 'CN' 
-                      ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm'
-                      : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm')
+                  ? (market === 'CN'
+                    ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm'
+                    : 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm')
                   : isDarkMode
                     ? 'text-gray-400 hover:text-gray-200'
                     : 'text-gray-600 hover:text-gray-900'
@@ -338,8 +338,8 @@ export function TradeInputCard({
                 onClick={() => setDirection('short')}
                 className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${direction === 'short'
                   ? (market === 'CN'
-                      ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm'
-                      : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm')
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm'
+                    : 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm')
                   : isDarkMode
                     ? 'text-gray-400 hover:text-gray-200'
                     : 'text-gray-600 hover:text-gray-900'
@@ -398,10 +398,10 @@ export function TradeInputCard({
             <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.entryPrice')}</Label>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                                  }
+                }
                                   `}>
-                                {currencySymbol}</span>
-                                <Input                type="number"
+                {currencySymbol}</span>
+              <Input type="number"
                 value={entryPrice || ''}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -410,7 +410,14 @@ export function TradeInputCard({
                   } else {
                     const num = parseFloat(value);
                     if (!isNaN(num)) {
-                      setEntryPrice(parseFloat(num.toFixed(2)));
+                      const decimalPlaces = market === 'CN' ? 3 : 2;
+                      // Only apply rounding if we have more decimals than allowed to avoid fighting user input
+                      const parts = value.split('.');
+                      if (parts.length === 2 && parts[1].length > decimalPlaces) {
+                        setEntryPrice(parseFloat(num.toFixed(decimalPlaces)));
+                      } else {
+                        setEntryPrice(num);
+                      }
                     }
                   }
                 }}
@@ -418,7 +425,7 @@ export function TradeInputCard({
                   ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
                   : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
                   }`}
-                step="0.01"
+                step={market === 'CN' ? "0.001" : "0.01"}
               />
               {isFetchingPrice && (
                 <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -433,10 +440,10 @@ export function TradeInputCard({
             <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.stopLoss')}</Label>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                                  }
+                }
                                   `}>
-                                {currencySymbol}</span>
-                                <Input                type="number"
+                {currencySymbol}</span>
+              <Input type="number"
                 value={stopLoss || ''}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -445,7 +452,13 @@ export function TradeInputCard({
                   } else {
                     const num = parseFloat(value);
                     if (!isNaN(num)) {
-                      setStopLoss(parseFloat(num.toFixed(2)));
+                      const decimalPlaces = market === 'CN' ? 3 : 2;
+                      const parts = value.split('.');
+                      if (parts.length === 2 && parts[1].length > decimalPlaces) {
+                        setStopLoss(parseFloat(num.toFixed(decimalPlaces)));
+                      } else {
+                        setStopLoss(num);
+                      }
                     }
                   }
                 }}
@@ -457,7 +470,7 @@ export function TradeInputCard({
                     ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
                     : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
                   }`}
-                step="0.01"
+                step={market === 'CN' ? "0.001" : "0.01"}
               />
             </div>
             <div className="flex items-baseline gap-1">
@@ -479,10 +492,10 @@ export function TradeInputCard({
             <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.target')}</Label>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
-                                  }
+                }
                                   `}>
-                                {currencySymbol}</span>
-                                <Input                type="number"
+                {currencySymbol}</span>
+              <Input type="number"
                 value={target}
                 onChange={(e) => {
                   const value = e.target.value;
@@ -491,7 +504,13 @@ export function TradeInputCard({
                   } else {
                     const num = parseFloat(value);
                     if (!isNaN(num)) {
-                      setTarget(parseFloat(num.toFixed(2)).toString());
+                      const decimalPlaces = market === 'CN' ? 3 : 2;
+                      const parts = value.split('.');
+                      if (parts.length === 2 && parts[1].length > decimalPlaces) {
+                        setTarget(parseFloat(num.toFixed(decimalPlaces)).toString());
+                      } else {
+                        setTarget(value);
+                      }
                     } else {
                       setTarget(value);
                     }
@@ -505,7 +524,7 @@ export function TradeInputCard({
                     ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
                     : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
                   }`}
-                step="0.01"
+                step={market === 'CN' ? "0.001" : "0.01"}
               />
             </div>
           </div>
