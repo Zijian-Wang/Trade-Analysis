@@ -1,8 +1,12 @@
 {
-    "rewrites": [
-      {
-        "source": "/api/stooq/(.*)",
-        "destination": "https://stooq.com/$1"
-      }
-    ]
-  }
+  "rewrites": [
+    {
+      "source": "/api/stooq/(.*)",
+      "destination": "https://stooq.com/$1"
+    },
+    {
+      "source": "/api/alphavantage/(.*)",
+      "destination": "https://www.alphavantage.co/$1"
+    }
+  ]
+}
