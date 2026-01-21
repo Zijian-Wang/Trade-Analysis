@@ -3,16 +3,17 @@
 ## Role
 
 You are an implementation and refactoring agent for the Trade Risk Analysis codebase.
-Your goal is to execute **Phase 2 (Active Management)** integration while maintaining existing Phase 1 persistence.
+Your goal is to maintain the **Trade Lifecycle**, **Active Management**, and **Visualization** features while ensuring strict adherence to the **Unit Testing Policy**.
 
 ---
 
 ## Ground Rules
 
-1.  **Current Phase**: Phase 1 Complete (Entry Setup + Persistence). Moving to Phase 2.
+1.  **Current Phase**: Phase 4 Complete (Bug Fixes & QA). Maintenance & Policy Enforcement Mode.
 2.  **Naming Convention**: Adhere to the "Data Dictionary" below.
 3.  **Core Principle**: Logic must be UI-agnostic (moved from hooks to pure services).
 4.  **Persistence**: Hybrid model (Firebase for Auth Users, LocalStorage for Guests).
+5.  **Testing**: All new logic requires a corresponding `.test.ts` file in `src/test/`.
 
 ---
 
@@ -20,23 +21,25 @@ Your goal is to execute **Phase 2 (Active Management)** integration while mainta
 
 | Concept | File / Component | Notes |
 | :--- | :--- | :--- |
-| **Trade Model** | `src/app/services/tradeService.ts` | Currently flat interface. Moving to composite `RiskContract[]`. |
-| **Entry Form** | `src/app/components/TradeInputCard.tsx` | Handles user input and validation. |
-| **Risk Logic** | `src/app/hooks/useTradeCalculator.ts` | **Refactor Target**: Move core math to `src/app/services/riskCalculator.ts`. |
+| **Trade Model** | `src/app/services/tradeService.ts` | Supports `RiskContract[]` and `status` ('PLANNED'/'ACTIVE'/'CLOSED'). |
+| **Entry Form** | `src/app/components/TradeInputCard.tsx` | Handles user input, validation, and Context Mode (Add to Position). |
+| **Risk Logic** | `src/app/services/riskCalculator.ts` | Pure function service for all risk math. |
+| **Active List** | `src/app/pages/ActivePositionsPage.tsx` | Displays grouped trades (US/CN), supports expansion for charts. |
+| **Portfolio** | `src/app/pages/PortfolioOverviewPage.tsx` | Multi-market risk analysis (Allocated Risk vs Safe Capital). |
+| **Charting** | `src/app/components/MarketChart.tsx` | Reusable `lightweight-charts` component with ResizeObserver stability. |
+| **Dialogs** | `src/app/components/ConfirmDialog.tsx` | Generic alert/confirmation dialog (replaces window.confirm). |
 | **Persistence** | `src/app/services/tradeService.ts` | Handles unified API for Firestore/LocalStorage. |
-| **History UI** | `src/app/components/TradeHistory.tsx` | Displays list of trades. |
-| **Risk Line** | *(Planned)* | To be implemented in `src/app/components/ui/RiskLine.tsx`. |
 
 ---
 
-## Trade Model Specification (Phase 2)
+## Trade Model Specification
 
 ### Lifecycle States
 1.  **PLANNED**: Created in Entry Setup, not yet executed.
 2.  **ACTIVE**: Position is open and managed.
 3.  **CLOSED**: Position is fully exited.
 
-### Data Structure plan
+### Data Structure active
 ```typescript
 interface Trade {
   id: string;
@@ -44,6 +47,7 @@ interface Trade {
   status: 'PLANNED' | 'ACTIVE' | 'CLOSED';
   structureStop: number; // Thesis invalidation point
   contracts: RiskContract[]; // Array of executions
+  market: 'US' | 'CN'; // Market segment
   // ...
 }
 
@@ -68,40 +72,31 @@ interface RiskContract {
 
 ---
 
-## Feature Requirements
+## Feature Implementation Status
 
-### 1. Active Position Management
-*   **Location**: `src/app/pages/ActivePositions.tsx` (New)
-*   **Capabilities**:
-    *   List active trades.
-    *   Action: **Add to Position** (Opens Entry Setup in context mode).
-    *   Action: **Move Stop** (Updates `structureStop` or `contractStop`).
-    *   Action: **Close** (Sets status to CLOSED).
+### 1. Active Position Management (Complete)
+*   **Location**: `src/app/pages/ActivePositionsPage.tsx`
+*   **Features**:
+    *   Grouped by Market (US/CN).
+    *   Expandable rows showing `MarketChart`.
+    *   Actions: Add to Position, Adjust Stop, Close Position (with Dialog).
 
-### 2. Entry Setup Reuse (Context Mode)
+### 2. Entry Setup Reuse (Context Mode) (Complete)
 *   **Component**: `TradeInputCard.tsx`
 *   **Logic**:
-    *   Accept `parentTrade` prop.
-    *   If present, lock `Ticker` and pre-fill `Structure Stop`.
-    *   Show "Freed Risk" if parent trade stop was moved to breakeven+.
+    *   Accepts `parentTrade` to pre-fill context.
+    *   Integrated `MarketChart` for visual planning.
 
-### 3. Portfolio Risk Summary
-*   **Location**: `src/app/components/PortfolioRiskSummary.tsx` (New)
+### 3. Portfolio Risk Summary (Complete)
+*   **Location**: `src/app/pages/PortfolioOverviewPage.tsx`
 *   **Metrics**:
-    *   Total Open Risk ($).
-    *   Total Open Risk (%).
-    *   Exposure Check (prevent new trades if > Max Risk).
+    *   Market-specific risk segmentation.
+    *   Total Open Risk ($/%) and Position Counts.
 
 ---
 
 ## Localization
 *   **Framework**: `src/app/locales/{en,zh}.json`
 *   **Rule**: No hardcoded strings. All new UI text must be added to JSON files immediately.
-
----
-
-## Persistence Extensions
-*   Existing `tradeService.ts` must be updated to handle the `contracts` array and `status` field.
-*   **Migration**: Backward compatibility for existing flat trades is required (treat as single-contract Active trades).
 
 ---
