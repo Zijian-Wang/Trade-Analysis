@@ -3,7 +3,10 @@
     "title": "交易分析",
     "subtitle": "风险管理与仓位控制",
     "region_us": "🇺🇸 美股",
-    "region_cn": "🇨🇳 A股"
+    "region_cn": "🇨🇳 A股",
+    "nav_entry": "交易计划",
+    "nav_active": "持仓管理",
+    "nav_portfolio": "账户总览"
   },
   "tradeInput": {
     "tickerSymbol": "交易代码",
@@ -20,6 +23,47 @@
     "stopLoss": "止损价",
     "target": "目标价 (可选)",
     "logTrade": "记录交易"
+  },
+  "activePositions": {
+    "title": "持仓管理",
+    "totalRisk": "当前总风险",
+    "positionCount": "持仓数量",
+    "noPositions": "暂无持仓。请前往交易计划页面记录交易。",
+    "col_symbol": "代码",
+    "col_entry": "入场均价",
+    "col_stop": "止损价",
+    "col_shares": "持仓量",
+    "col_risk": "风险金额",
+    "col_actions": "操作",
+    "actions": {
+      "chart": "图表",
+      "adjustStop": "调整止损",
+      "addToPosition": "加仓",
+      "close": "平仓",
+      "confirmClose": "确定要平仓吗？"
+    }
+  },
+  "portfolioSummary": {
+    "title": "账户总览",
+    "overview": "账户总览",
+    "riskAllocation": "风险分布",
+    "capitalAtRisk": "资金风险敞口",
+    "safeCapital": "安全资金",
+    "cash": "可用现金",
+    "deployedRisk": "已占用风险",
+    "noActivePositions": "暂无持仓"
+  },
+  "stopAdjust": {
+    "title": "调整止损",
+    "current": "当前止损",
+    "newStop": "新止损价",
+    "currentRisk": "当前风险",
+    "newRisk": "新风险",
+    "change": "变化金额",
+    "confirm": "确认调整",
+    "cancel": "取消",
+    "success": "止损已更新",
+    "error": "更新止损失败"
   },
   "positionSize": {
     "title": "仓位大小",
