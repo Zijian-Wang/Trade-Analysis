@@ -3,119 +3,105 @@
 ## Role
 
 You are an implementation and refactoring agent for the Trade Risk Analysis codebase.
-
-Your goal is to extend functionality **without breaking existing Phase 1 logic or persistence**.
+Your goal is to execute **Phase 2 (Active Management)** integration while maintaining existing Phase 1 persistence.
 
 ---
 
 ## Ground Rules
 
-1. The codebase is already in Phase 1 (Entry Setup + persistence exists).
-2. Function names, field names, and component names MAY differ from this document.
-3. On first read:
-   - Inspect the codebase
-   - Identify actual names
-   - Update this markdown to reflect reality
-4. Do NOT assume naming consistency.
-5. Core risk logic must remain UI-agnostic.
+1.  **Current Phase**: Phase 1 Complete (Entry Setup + Persistence). Moving to Phase 2.
+2.  **Naming Convention**: Adhere to the "Data Dictionary" below.
+3.  **Core Principle**: Logic must be UI-agnostic (moved from hooks to pure services).
+4.  **Persistence**: Hybrid model (Firebase for Auth Users, LocalStorage for Guests).
 
 ---
 
-## Trade Model (Conceptual, not prescriptive)
+## Data Dictionary (Actual Implementation)
 
-Trade lifecycle states:
+| Concept | File / Component | Notes |
+| :--- | :--- | :--- |
+| **Trade Model** | `src/app/services/tradeService.ts` | Currently flat interface. Moving to composite `RiskContract[]`. |
+| **Entry Form** | `src/app/components/TradeInputCard.tsx` | Handles user input and validation. |
+| **Risk Logic** | `src/app/hooks/useTradeCalculator.ts` | **Refactor Target**: Move core math to `src/app/services/riskCalculator.ts`. |
+| **Persistence** | `src/app/services/tradeService.ts` | Handles unified API for Firestore/LocalStorage. |
+| **History UI** | `src/app/components/TradeHistory.tsx` | Displays list of trades. |
+| **Risk Line** | *(Planned)* | To be implemented in `src/app/components/ui/RiskLine.tsx`. |
 
-PLANNED → ACTIVE → CLOSED
+---
 
-Actions (not states):
-- Move stop
-- Add to position
-- Partial close
+## Trade Model Specification (Phase 2)
+
+### Lifecycle States
+1.  **PLANNED**: Created in Entry Setup, not yet executed.
+2.  **ACTIVE**: Position is open and managed.
+3.  **CLOSED**: Position is fully exited.
+
+### Data Structure plan
+```typescript
+interface Trade {
+  id: string;
+  symbol: string;
+  status: 'PLANNED' | 'ACTIVE' | 'CLOSED';
+  structureStop: number; // Thesis invalidation point
+  contracts: RiskContract[]; // Array of executions
+  // ...
+}
+
+interface RiskContract {
+  id: string;
+  entryPrice: number;
+  shares: number;
+  contractStop?: number; // Optional strict stop
+}
+```
 
 ---
 
 ## Risk Model
 
-- Each Trade represents a structure thesis.
-- Each Trade contains one or more Risk Contracts.
+**Effective Stop Logic**:
+> If `RiskContract.contractStop` is defined, use it.
+> Else, use `Trade.structureStop`.
 
-Stops:
-- Structure Stop (default, thesis-level)
-- Contract Stop (optional override, per contract)
-
-Effective stop:
-Effective Stop =
-Contract Stop (if exists)
-else Structure Stop
-
-Total trade risk:
-R_trade = Σ Risk_contract
-
-Portfolio risk:
-R_portfolio = Σ R_trade
+**Risk Calculation**:
+`Trade Risk ($) = Σ (Contract.shares * |Contract.entry - EffectiveStop|)`
 
 ---
 
-## Entry Setup Usage
+## Feature Requirements
 
-Entry Setup logic must be reusable in two modes:
+### 1. Active Position Management
+*   **Location**: `src/app/pages/ActivePositions.tsx` (New)
+*   **Capabilities**:
+    *   List active trades.
+    *   Action: **Add to Position** (Opens Entry Setup in context mode).
+    *   Action: **Move Stop** (Updates `structureStop` or `contractStop`).
+    *   Action: **Close** (Sets status to CLOSED).
 
-1. Standalone mode
-   - Creates a new Trade + initial Risk Contract
+### 2. Entry Setup Reuse (Context Mode)
+*   **Component**: `TradeInputCard.tsx`
+*   **Logic**:
+    *   Accept `parentTrade` prop.
+    *   If present, lock `Ticker` and pre-fill `Structure Stop`.
+    *   Show "Freed Risk" if parent trade stop was moved to breakeven+.
 
-2. Context mode (Add-to-position)
-   - Creates a new Risk Contract under an existing Trade
-   - Receives parent trade context
-   - Displays freed risk and remaining portfolio risk
-   - Must not mutate parent trade
-
----
-
-## Active Management Requirements
-
-Active view must support:
-- Stop adjustment (structure or contract-level)
-- Add-to-position (via Entry Setup context mode)
-- Risk recalculation and persistence
-
-Visualization:
-- Horizontal risk line (stop / entry / price / target)
-- Optional chart toggle (daily candles + horizontal levels)
+### 3. Portfolio Risk Summary
+*   **Location**: `src/app/components/PortfolioRiskSummary.tsx` (New)
+*   **Metrics**:
+    *   Total Open Risk ($).
+    *   Total Open Risk (%).
+    *   Exposure Check (prevent new trades if > Max Risk).
 
 ---
 
 ## Localization
-
-All user-facing strings must:
-- Support CN / EN
-- Use existing localization framework
-- Avoid hardcoded text
+*   **Framework**: `src/app/locales/{en,zh}.json`
+*   **Rule**: No hardcoded strings. All new UI text must be added to JSON files immediately.
 
 ---
 
-## Persistence Rules
-
-- Initial trade parameters are immutable once Active.
-- Stop changes and add-ons are persisted as new actions/contracts.
-- Closed trades remain stored.
+## Persistence Extensions
+*   Existing `tradeService.ts` must be updated to handle the `contracts` array and `status` field.
+*   **Migration**: Backward compatibility for existing flat trades is required (treat as single-contract Active trades).
 
 ---
-
-## UI Constraints
-
-- UI is flexible and exploratory.
-- Logic must not depend on visual layout.
-- Components should be reusable and composable.
-
----
-
-## First-Read Checklist (MANDATORY)
-
-On first execution:
-1. Inspect data models
-2. Inspect Entry Setup implementation
-3. Map actual names → conceptual names
-4. Update this document accordingly
-5. Flag mismatches or ambiguities
-
-Failure to perform this checklist is considered a critical error.
