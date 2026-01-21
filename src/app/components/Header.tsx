@@ -13,10 +13,11 @@ import { UserMenu } from "./UserMenu";
 interface HeaderProps {
   market: "US" | "CN";
   onMarketChange: (value: "US" | "CN") => void;
-  onNavigate?: (page: 'main' | 'history' | 'settings') => void;
+  currentPage: 'main' | 'active' | 'portfolio' | 'history' | 'settings';
+  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'history' | 'settings') => void;
 }
 
-export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
+export function Header({ market, onMarketChange, currentPage, onNavigate }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
 
@@ -37,7 +38,9 @@ export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
               {t("header.subtitle")}
             </p>
           </div>
-          {/* Header Controls */}
+
+
+
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Theme Toggle */}
             <button
