@@ -47,6 +47,15 @@ describe('tradeService - Guest Mode (localStorage)', () => {
     setup: 'Trend',
     entry: 150,
     stop: 145,
+    structureStop: 145, // NEW
+    status: 'ACTIVE' as const, // NEW
+    contracts: [{ // NEW
+      id: 'test-contract-id',
+      entryPrice: 150,
+      shares: 150,
+      riskAmount: 750,
+      createdAt: 1234567890
+    }],
     target: 160,
     riskPercent: 0.75,
     positionSize: 150,

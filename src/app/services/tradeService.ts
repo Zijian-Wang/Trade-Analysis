@@ -12,19 +12,37 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase';
 
+export type TradeStatus = 'PLANNED' | 'ACTIVE' | 'CLOSED';
+
+export interface RiskContract {
+  id: string;
+  entryPrice: number;
+  shares: number;
+  riskAmount: number;
+  contractStop?: number;
+  createdAt: number; // Unix timestamp
+}
+
 export interface Trade {
   id?: string;
   date: string;
   symbol: string;
   direction: 'long' | 'short';
+  status: TradeStatus;              // NEW
   setup: string;
-  entry: number;
-  stop: number;
+  
+  // Phase 1 fields (Compatible)
+  entry: number;                    // Avg entry if multiple contracts? Or initial?
+  stop: number;                     // DEPRECATED: Use structureStop
+  structureStop: number;            // NEW: Thesis invalidation point
   target: number | null;
   riskPercent: number;
-  positionSize: number;
-  riskAmount: number;
+  positionSize: number;             // Total size
+  riskAmount: number;               // Total risk
   rrRatio: number | null;
+  
+  contracts: RiskContract[];        // NEW: Executions
+  
   market: 'US' | 'CN';
   createdAt?: Timestamp;
 }
@@ -65,10 +83,23 @@ export const getTrades = async (userId: string | null): Promise<Trade[]> => {
     const tradesRef = getTradesCollection(userId);
     const q = query(tradesRef, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Trade[];
+    return snapshot.docs.map((doc) => {
+      const data = doc.data() as Trade;
+      // Migration/Defaults for legacy data
+      return {
+        id: doc.id,
+        ...data,
+        status: data.status || 'ACTIVE', // Assume active for better visibility during transition
+        structureStop: data.structureStop || data.stop,
+        contracts: data.contracts || [{
+          id: `legacy-${doc.id}`,
+          entryPrice: data.entry,
+          shares: data.positionSize,
+          riskAmount: data.riskAmount,
+          createdAt: data.createdAt ? (data.createdAt as any).toMillis?.() || Date.now() : Date.now()
+        }]
+      };
+    }) as Trade[];
   } else {
     // Guest: get from localStorage
     return getGuestTrades();
@@ -110,12 +141,25 @@ export const updateTrade = async (
   }
 };
 
-// Helper: get guest trades from localStorage
+// Helper: get guest trades from localStorag
 const getGuestTrades = (): Trade[] => {
   const stored = localStorage.getItem(GUEST_TRADES_KEY);
   if (stored) {
     try {
-      return JSON.parse(stored);
+      const trades = JSON.parse(stored);
+      // Migration/Defaults for guest data
+      return trades.map((t: any) => ({
+        ...t,
+        status: t.status || 'ACTIVE',
+        structureStop: t.structureStop || t.stop,
+        contracts: t.contracts || [{
+          id: `legacy-${t.id}`,
+          entryPrice: t.entry,
+          shares: t.positionSize,
+          riskAmount: t.riskAmount,
+          createdAt: t.createdAt || Date.now()
+        }]
+      }));
     } catch {
       return [];
     }
