@@ -22,39 +22,25 @@
     "entryPrice": "Entry Price",
     "stopLoss": "Stop Loss",
     "target": "Target (Optional)",
-    "logTrade": "Log Trade to Journal",
-    "addingToPosition": "Adding to {symbol} Position",
-    "freedRisk": "Freed Risk",
-    "remainingRiskBudget": "Remaining Risk Budget",
-    "duplicateTrade": "This trade was already logged. Log it again?",
-    "positionAdded": "Position added successfully!"
+    "logTrade": "Log Trade to Journal"
   },
   "activePositions": {
     "title": "Active Positions",
     "totalRisk": "Total Active Risk",
-    "riskPercent": "Risk % of Account",
     "positionCount": "Active Positions",
     "noPositions": "No active positions. Go to Entry Planning to log a trade.",
     "col_symbol": "Symbol",
     "col_entry": "Entry",
     "col_stop": "Stop",
-    "col_currentStop": "Current Stop",
-    "col_currentPrice": "Current Price",
     "col_shares": "Shares",
     "col_risk": "Risk",
-    "col_riskRemaining": "Risk Remaining",
     "col_actions": "Actions",
-    "unsupported": "Unsupported",
-    "noStop": "No Stop",
-    "syncedFromBroker": "Synced from Schwab",
     "actions": {
-      "chart": "View Risk Visualization",
+      "chart": "Chart",
       "adjustStop": "Adjust Stop",
       "addToPosition": "Add to Position",
       "close": "Close Position",
-      "confirmClose": "Close this position?",
-      "positionClosed": "Position closed",
-      "closeFailed": "Failed to close position"
+      "confirmClose": "Close this position?"
     }
   },
   "portfolioSummary": {
@@ -69,7 +55,6 @@
   },
   "stopAdjust": {
     "title": "Adjust Stop Loss",
-    "contractStopTitle": "Set Contract Stop Override",
     "current": "Current",
     "newStop": "New Stop",
     "currentRisk": "Current Risk",
@@ -78,11 +63,7 @@
     "confirm": "Confirm Adjustment",
     "cancel": "Cancel",
     "success": "Stop loss updated",
-    "error": "Failed to update stop loss",
-    "contractStop": "Contract Stop Override",
-    "effectiveStop": "Effective Stop",
-    "selectContract": "Select Contract",
-    "removeOverride": "Remove Override"
+    "error": "Failed to update stop loss"
   },
   "positionSize": {
     "title": "Position Size",
@@ -148,18 +129,6 @@
     "changePassword": "Change Password",
     "deleteAccount": "Delete Account",
     "save": "Save Changes",
-    "saved": "Settings saved!",
-    "emailChangeWarning": "Changing your email requires password confirmation"
-  },
-  "schwab": {
-    "linkAccount": "Link Schwab Account",
-    "syncAccount": "Sync Schwab Account",
-    "accountLinked": "Schwab account linked successfully",
-    "syncSuccess": "Account synced successfully",
-    "syncFailed": "Failed to sync account",
-    "reAuthRequired": "Re-authentication required. Please link your Schwab account again.",
-    "lastSync": "Last synced",
-    "syncing": "Syncing...",
-    "unlinkAccount": "Unlink Account"
+    "saved": "Settings saved!"
   }
 }

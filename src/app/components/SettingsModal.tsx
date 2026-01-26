@@ -1,170 +1,155 @@
-import { useState, useEffect } from 'react'
-import * as Dialog from '@radix-ui/react-dialog'
-import * as Tabs from '@radix-ui/react-tabs'
-import {
-  X,
-  User,
-  Settings as SettingsIcon,
-  Shield,
-  Loader2,
-  Check,
-} from 'lucide-react'
-import { useAuth } from '../context/AuthContext'
-import {
-  useUserPreferences,
-  UserPreferences,
-} from '../context/UserPreferencesContext'
-import { useLanguage } from '../context/LanguageContext'
-import { toast } from 'sonner'
+import { useState, useEffect } from 'react';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as Tabs from '@radix-ui/react-tabs';
+import { X, User, Settings as SettingsIcon, Shield, Loader2, Check } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useUserPreferences, UserPreferences } from '../context/UserPreferencesContext';
+import { useLanguage } from '../context/LanguageContext';
+import { toast } from 'sonner';
 
 interface SettingsModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
-type MarketPreference = 'US' | 'CN' | 'both'
-type LanguagePreference = 'en' | 'zh' | 'auto'
+type MarketPreference = 'US' | 'CN' | 'both';
+type LanguagePreference = 'en' | 'zh' | 'auto';
 
 export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
-  const { t, setLanguage } = useLanguage()
-  const { user } = useAuth()
-  const { preferences, updatePreferences } = useUserPreferences()
+  const { t, setLanguage } = useLanguage();
+  const { user } = useAuth();
+  const { preferences, updatePreferences } = useUserPreferences();
 
-  const [activeTab, setActiveTab] = useState<
-    'profile' | 'preferences' | 'account'
-  >('preferences')
-  const [loading, setLoading] = useState(false)
-  const [localPrefs, setLocalPrefs] = useState<UserPreferences>(preferences)
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'account'>('preferences');
+  const [loading, setLoading] = useState(false);
+  const [localPrefs, setLocalPrefs] = useState<UserPreferences>(preferences);
 
   // Market preference state (derived from singleMarketMode)
-  const [marketPreference, setMarketPreference] =
-    useState<MarketPreference>('both')
-  const [languagePreference, setLanguagePreference] =
-    useState<LanguagePreference>('auto')
+  const [marketPreference, setMarketPreference] = useState<MarketPreference>('both');
+  const [languagePreference, setLanguagePreference] = useState<LanguagePreference>('auto');
 
   // Profile update state
-  const { updateDisplayName, updateUserEmail } = useAuth()
-  const [displayNameInput, setDisplayNameInput] = useState('')
-  const [emailInput, setEmailInput] = useState('')
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [profileLoading, setProfileLoading] = useState(false)
-  const [profileError, setProfileError] = useState('')
+  const { updateDisplayName, updateUserEmail } = useAuth();
+  const [displayNameInput, setDisplayNameInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [profileError, setProfileError] = useState('');
 
   // Initialize inputs when user changes
   useEffect(() => {
     if (user) {
-      setDisplayNameInput(user.displayName || '')
-      setEmailInput(user.email || '')
+      setDisplayNameInput(user.displayName || '');
+      setEmailInput(user.email || '');
     }
-  }, [user])
+  }, [user]);
 
   // Sync local state when preferences change
   useEffect(() => {
-    setLocalPrefs(preferences)
+    setLocalPrefs(preferences);
     // Derive market preference
     if (preferences.singleMarketMode) {
-      setMarketPreference('US') // Default to US for single market
+      setMarketPreference('US'); // Default to US for single market
     } else {
-      setMarketPreference('both')
+      setMarketPreference('both');
     }
-  }, [preferences])
+  }, [preferences]);
 
   const handleSave = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
-      await updatePreferences(localPrefs)
-      toast.success(t('settings.saved'))
+      await updatePreferences(localPrefs);
+      toast.success(t('settings.saved'));
     } catch (err) {
-      toast.error('Failed to save settings')
+      toast.error('Failed to save settings');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handlePortfolioChange = (market: 'US' | 'CN', value: string) => {
-    const numValue = parseFloat(value.replace(/,/g, '')) || 0
+    const numValue = parseFloat(value.replace(/,/g, '')) || 0;
     setLocalPrefs({
       ...localPrefs,
       defaultPortfolio: {
         ...localPrefs.defaultPortfolio,
         [market]: numValue,
       },
-    })
-  }
+    });
+  };
 
   const handleMarketPreferenceChange = (market: MarketPreference) => {
-    setMarketPreference(market)
+    setMarketPreference(market);
     setLocalPrefs({
       ...localPrefs,
       singleMarketMode: market !== 'both',
-    })
-  }
+    });
+  };
 
   const handleLanguagePreferenceChange = (lang: LanguagePreference) => {
-    setLanguagePreference(lang)
+    setLanguagePreference(lang);
     if (lang === 'auto') {
       setLocalPrefs({
         ...localPrefs,
         languageFollowsMarket: true,
-      })
+      });
     } else {
       setLocalPrefs({
         ...localPrefs,
         languageFollowsMarket: false,
-      })
-      setLanguage(lang)
+      });
+      setLanguage(lang);
     }
-  }
+  };
 
   const handleUpdateDisplayName = async () => {
-    if (!displayNameInput.trim()) return
+    if (!displayNameInput.trim()) return;
 
-    setProfileLoading(true)
-    setProfileError('')
+    setProfileLoading(true);
+    setProfileError('');
 
     try {
-      await updateDisplayName(displayNameInput.trim())
-      toast.success('Display name updated successfully')
+      await updateDisplayName(displayNameInput.trim());
+      toast.success('Display name updated successfully');
     } catch (err: any) {
-      setProfileError(err.message || 'Failed to update display name')
-      toast.error('Failed to update display name')
+      setProfileError(err.message || 'Failed to update display name');
+      toast.error('Failed to update display name');
     } finally {
-      setProfileLoading(false)
+      setProfileLoading(false);
     }
-  }
+  };
 
   const handleUpdateEmail = async () => {
-    if (!emailInput.trim() || !currentPassword.trim()) return
+    if (!emailInput.trim() || !currentPassword.trim()) return;
 
-    setProfileLoading(true)
-    setProfileError('')
+    setProfileLoading(true);
+    setProfileError('');
 
     try {
-      await updateUserEmail(emailInput.trim(), currentPassword)
-      toast.success('Email updated successfully')
-      setCurrentPassword('') // Clear password after success
+      await updateUserEmail(emailInput.trim(), currentPassword);
+      toast.success('Email updated successfully');
+      setCurrentPassword(''); // Clear password after success
     } catch (err: any) {
-      let errorMessage = 'Failed to update email'
+      let errorMessage = 'Failed to update email';
 
       if (err.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password'
+        errorMessage = 'Incorrect password';
       } else if (err.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already in use'
+        errorMessage = 'This email is already in use';
       } else if (err.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email format'
+        errorMessage = 'Invalid email format';
       } else if (err.code === 'auth/requires-recent-login') {
-        errorMessage =
-          'Please sign out and sign in again before changing your email'
+        errorMessage = 'Please sign out and sign in again before changing your email';
       } else if (err.message) {
-        errorMessage = err.message
+        errorMessage = err.message;
       }
 
-      setProfileError(errorMessage)
-      toast.error(errorMessage)
+      setProfileError(errorMessage);
+      toast.error(errorMessage);
     } finally {
-      setProfileLoading(false)
+      setProfileLoading(false);
     }
-  }
+  };
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -179,10 +164,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
             <X className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </Dialog.Close>
 
-          <Tabs.Root
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(v as any)}
-          >
+          <Tabs.Root value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
             <Tabs.List className="flex gap-1 mb-6 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
               <Tabs.Trigger
                 value="preferences"
@@ -224,31 +206,28 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 <div className="inline-flex bg-gray-100 dark:bg-gray-700 p-1 rounded-full w-full">
                   <button
                     onClick={() => handleMarketPreferenceChange('US')}
-                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                      marketPreference === 'US'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${marketPreference === 'US'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
                     US
                   </button>
                   <button
                     onClick={() => handleMarketPreferenceChange('CN')}
-                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                      marketPreference === 'CN'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${marketPreference === 'CN'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
                     China
                   </button>
                   <button
                     onClick={() => handleMarketPreferenceChange('both')}
-                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                      marketPreference === 'both'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${marketPreference === 'both'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
                     Both
                   </button>
@@ -266,31 +245,28 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                 <div className="inline-flex bg-gray-100 dark:bg-gray-700 p-1 rounded-full w-full">
                   <button
                     onClick={() => handleLanguagePreferenceChange('en')}
-                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                      languagePreference === 'en'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${languagePreference === 'en'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
                     EN
                   </button>
                   <button
                     onClick={() => handleLanguagePreferenceChange('zh')}
-                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                      languagePreference === 'zh'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${languagePreference === 'zh'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
                     CH
                   </button>
                   <button
                     onClick={() => handleLanguagePreferenceChange('auto')}
-                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
-                      languagePreference === 'auto'
-                        ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
-                    }`}
+                    className={`flex-1 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${languagePreference === 'auto'
+                      ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200'
+                      }`}
                   >
                     Auto
                   </button>
@@ -316,9 +292,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       <input
                         type="text"
                         value={localPrefs.defaultPortfolio.US.toLocaleString()}
-                        onChange={(e) =>
-                          handlePortfolioChange('US', e.target.value)
-                        }
+                        onChange={(e) => handlePortfolioChange('US', e.target.value)}
                         placeholder="0"
                         className="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       />
@@ -339,9 +313,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       <input
                         type="text"
                         value={localPrefs.defaultPortfolio.CN.toLocaleString()}
-                        onChange={(e) =>
-                          handlePortfolioChange('CN', e.target.value)
-                        }
+                        onChange={(e) => handlePortfolioChange('CN', e.target.value)}
                         placeholder="0"
                         className="w-full pl-8 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                       />
@@ -387,11 +359,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       />
                       <button
                         onClick={handleUpdateDisplayName}
-                        disabled={
-                          profileLoading ||
-                          !displayNameInput.trim() ||
-                          displayNameInput === user.displayName
-                        }
+                        disabled={profileLoading || !displayNameInput.trim() || displayNameInput === user.displayName}
                         className="px-4 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-lg hover:bg-gray-800 dark:hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                       >
                         {profileLoading ? (
@@ -403,9 +371,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       </button>
                     </div>
                     {profileError && (
-                      <p className="text-sm text-rose-600 dark:text-rose-400">
-                        {profileError}
-                      </p>
+                      <p className="text-sm text-rose-600 dark:text-rose-400">{profileError}</p>
                     )}
                   </div>
 
@@ -415,7 +381,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       {t('settings.email')}
                     </label>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('settings.emailChangeWarning')}
+                      Changing your email requires password confirmation
                     </p>
                     <div className="space-y-2">
                       <input
@@ -450,9 +416,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       )}
                     </div>
                     {profileError && emailInput !== user.email && (
-                      <p className="text-sm text-rose-600 dark:text-rose-400">
-                        {profileError}
-                      </p>
+                      <p className="text-sm text-rose-600 dark:text-rose-400">{profileError}</p>
                     )}
                   </div>
                 </>
@@ -481,5 +445,5 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  )
+  );
 }
