@@ -7,6 +7,7 @@ import {
 } from '../services/riskCalculator'
 import { useAuth } from '../context/AuthContext'
 import { useMarketSettings } from '../hooks/useMarketSettings'
+import { useUserPreferences } from '../context/UserPreferencesContext'
 import { Loader } from '../components/ui/loader'
 import { fetchCurrentPrices } from '../services/priceService'
 import { getStockNames } from '../services/stockNameService'
@@ -46,6 +47,7 @@ export function ActivePositionsPage({
   const { t } = useLanguage()
   const { user } = useAuth()
   const { market, currencySymbol } = useMarketSettings()
+  const { preferences } = useUserPreferences()
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedTradeId, setExpandedTradeId] = useState<string | null>(null)
@@ -302,10 +304,6 @@ export function ActivePositionsPage({
     }
   }
 
-  const totalRisk = calculatePortfolioRisk(trades)
-  const { portfolioCapital } = useMarketSettings()
-  const riskPercent =
-    portfolioCapital > 0 ? (totalRisk / portfolioCapital) * 100 : 0
 
   // Helper to calculate effective stop for a trade
   const getEffectiveStop = (trade: Trade): number => {
@@ -327,10 +325,11 @@ export function ActivePositionsPage({
   // Helper to calculate risk remaining for a trade
   const getRiskRemaining = (
     trade: Trade,
+    marketCapital: number,
   ): { amount: number; percent: number } => {
     const tradeRisk = calculateTradeRisk(trade)
     const tradeRiskPercent =
-      portfolioCapital > 0 ? (tradeRisk / portfolioCapital) * 100 : 0
+      marketCapital > 0 ? (tradeRisk / marketCapital) * 100 : 0
     return { amount: tradeRisk, percent: tradeRiskPercent }
   }
 
@@ -418,35 +417,6 @@ export function ActivePositionsPage({
           </div>
         </div>
 
-        {/* Portfolio Risk Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 grid grid-cols-3 gap-4">
-          <div>
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t('activePositions.totalRisk')}
-            </h2>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {currencySymbol}
-              {totalRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-          <div>
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t('activePositions.riskPercent')}
-            </h2>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {riskPercent.toFixed(2)}%
-            </p>
-          </div>
-          <div className="text-right">
-            <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-              {t('activePositions.positionCount')}
-            </h2>
-            <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
-              {trades.length}
-            </p>
-          </div>
-        </div>
-
         {/* Positions Grouped by Market */}
         {trades.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-gray-500 dark:text-gray-400">
@@ -463,18 +433,55 @@ export function ActivePositionsPage({
               )
               if (groupTrades.length === 0) return null
 
+              // Calculate risk for this market
+              const marketRisk = calculatePortfolioRisk(groupTrades)
+              const marketCapital = groupMarket === 'US' 
+                ? preferences.defaultPortfolio.US 
+                : preferences.defaultPortfolio.CN
+              const marketRiskPercent = marketCapital > 0 
+                ? (marketRisk / marketCapital) * 100 
+                : 0
+              const marketCurrencySymbol = groupMarket === 'US' ? '$' : '¥'
+
               return (
                 <div
                   key={groupMarket}
                   className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden"
                 >
-                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 font-medium flex items-center gap-2">
-                    <span>
-                      {groupMarket === 'US' ? '🇺🇸 US Market' : '🇨🇳 CN Market'}
-                    </span>
-                    <span className="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
-                      {groupTrades.length}
-                    </span>
+                  <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 font-medium">
+                        <span>
+                          {groupMarket === 'US' ? '🇺🇸 US Market' : '🇨🇳 CN Market'}
+                        </span>
+                        <span className="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
+                          {groupTrades.length}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div>
+                          <h2 className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {t('activePositions.totalRisk')}
+                          </h2>
+                          <p className="text-lg font-bold text-gray-900 dark:text-white mt-0.5">
+                            {marketCurrencySymbol}
+                            {marketRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                          </p>
+                        </div>
+                        <div>
+                          <h2 className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                            {t('activePositions.riskPercent')}
+                          </h2>
+                          <p className={`text-lg font-bold mt-0.5 ${
+                            marketRiskPercent < 1 
+                              ? 'text-green-600 dark:text-green-400' 
+                              : 'text-red-600 dark:text-red-400'
+                          }`}>
+                            {marketRiskPercent.toFixed(2)}%
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <table className="w-full text-sm text-left">
                     <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
@@ -614,11 +621,11 @@ export function ActivePositionsPage({
                             <td className="px-4 py-3">{trade.positionSize}</td>
                             <td className="px-4 py-3">
                               {(() => {
-                                const riskRemaining = getRiskRemaining(trade)
+                                const riskRemaining = getRiskRemaining(trade, marketCapital)
                                 return (
                                   <div className="flex flex-col">
                                     <span className="font-medium">
-                                      {currencySymbol}
+                                      {marketCurrencySymbol}
                                       {riskRemaining.amount.toFixed(2)}
                                     </span>
                                     <span className="text-xs text-gray-500">
