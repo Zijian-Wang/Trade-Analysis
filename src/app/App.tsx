@@ -277,6 +277,10 @@ export default function App() {
       | 'settings'
       | 'schwab-callback',
   ) => {
+    // Prevent navigation to portfolio page (work in progress)
+    if (page === 'portfolio') {
+      return
+    }
     if (page === 'settings') {
       setSettingsOpen(true)
     } else {

@@ -13,6 +13,8 @@ import { fetchCurrentPrices } from '../services/priceService'
 import { getStockNames } from '../services/stockNameService'
 
 import { StopAdjustModal } from '../components/StopAdjustModal'
+import { ManualPositionModal } from '../components/ManualPositionModal'
+import { EditSharesModal } from '../components/EditSharesModal'
 import {
   ChevronDown,
   ChevronUp,
@@ -23,6 +25,11 @@ import {
   AlertTriangle,
   Link2,
   RefreshCw,
+  Pencil,
+  Plus,
+  SquarePen,
+  FilePen,
+  Edit2,
 } from 'lucide-react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { toast } from 'sonner'
@@ -46,7 +53,7 @@ export function ActivePositionsPage({
 }: ActivePositionsPageProps) {
   const { t } = useLanguage()
   const { user } = useAuth()
-  const { market, currencySymbol } = useMarketSettings()
+  const { market } = useMarketSettings()
   const { preferences } = useUserPreferences()
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
@@ -57,6 +64,14 @@ export function ActivePositionsPage({
   // Close Confirmation State
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
   const [tradeToClose, setTradeToClose] = useState<Trade | null>(null)
+
+  // Manual Position Modal State
+  const [manualPositionModalOpen, setManualPositionModalOpen] = useState(false)
+  const [manualPositionMarket, setManualPositionMarket] = useState<'US' | 'CN'>('US')
+
+  // Edit Shares Modal State
+  const [editSharesModalOpen, setEditSharesModalOpen] = useState(false)
+  const [tradeToEditShares, setTradeToEditShares] = useState<Trade | null>(null)
 
   // Schwab sync state
   const [isSyncing, setIsSyncing] = useState(false)
@@ -110,7 +125,7 @@ export function ActivePositionsPage({
       if (fixes.length > 0) {
         await Promise.all(fixes)
         // Re-fetch to get corrected data
-        const refreshedTrades = await getTrades(user.uid)
+        const refreshedTrades = await getTrades(user?.uid || null)
         const refreshedActive = refreshedTrades.filter(
           (t) => t.status === 'ACTIVE',
         )
@@ -425,7 +440,7 @@ export function ActivePositionsPage({
         ) : (
           <div className="space-y-8">
             {/* Helper to render a table for a set of trades */}
-            {['US', 'CN'].map((groupMarket) => {
+            {(['US', 'CN'] as const).map((groupMarket) => {
               const groupTrades = trades.filter(
                 (t) =>
                   t.market === groupMarket ||
@@ -459,6 +474,18 @@ export function ActivePositionsPage({
                         </span>
                       </div>
                       <div className="flex items-center gap-6">
+                        <Button
+                          onClick={() => {
+                            setManualPositionMarket(groupMarket as 'US' | 'CN')
+                            setManualPositionModalOpen(true)
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                        >
+                          <Plus size={16} />
+                          {t('activePositions.actions.addManualPosition')}
+                        </Button>
                         <div>
                           <h2 className="text-xs font-medium text-gray-500 dark:text-gray-400">
                             {t('activePositions.totalRisk')}
@@ -618,7 +645,32 @@ export function ActivePositionsPage({
                                 ? trade.currentPrice.toFixed(2)
                                 : '—'}
                             </td>
-                            <td className="px-4 py-3">{trade.positionSize}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <span>{trade.positionSize}</span>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setTradeToEditShares(trade)
+                                        setEditSharesModalOpen(true)
+                                      }}
+                                    >
+                                      {/* Icon options: SquarePen, FilePen, Edit2, or Pencil */}
+                                      <SquarePen
+                                        size={14}
+                                        className="text-gray-500"
+                                      />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>{t('activePositions.actions.editShares')}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </td>
                             <td className="px-4 py-3">
                               {(() => {
                                 const riskRemaining = getRiskRemaining(trade, marketCapital)
@@ -772,6 +824,20 @@ export function ActivePositionsPage({
           confirmLabel={t('activePositions.actions.close')}
           variant="destructive"
           onConfirm={handleClosePosition}
+        />
+
+        <ManualPositionModal
+          open={manualPositionModalOpen}
+          onOpenChange={setManualPositionModalOpen}
+          market={manualPositionMarket}
+          onSuccess={fetchTrades}
+        />
+
+        <EditSharesModal
+          open={editSharesModalOpen}
+          onOpenChange={setEditSharesModalOpen}
+          trade={tradeToEditShares}
+          onSuccess={fetchTrades}
         />
       </div>
     </TooltipProvider>

@@ -6,7 +6,8 @@
     "region_cn": "🇨🇳 A股",
     "nav_entry": "交易计划",
     "nav_active": "持仓管理",
-    "nav_portfolio": "账户总览"
+    "nav_portfolio": "账户总览",
+    "portfolioWip": "此功能正在开发中"
   },
   "tradeInput": {
     "tickerSymbol": "交易代码",
@@ -54,7 +55,9 @@
       "close": "平仓",
       "confirmClose": "确定要平仓吗？",
       "positionClosed": "持仓已平仓",
-      "closeFailed": "平仓失败"
+      "closeFailed": "平仓失败",
+      "addManualPosition": "添加持仓",
+      "editShares": "编辑持仓量"
     }
   },
   "portfolioSummary": {
@@ -161,5 +164,33 @@
     "lastSync": "最后同步",
     "syncing": "同步中...",
     "unlinkAccount": "取消关联"
+  },
+  "manualPosition": {
+    "title": "手动添加持仓",
+    "tickerSymbol": "交易代码",
+    "direction": "方向",
+    "long": "做多",
+    "short": "做空",
+    "shares": "持仓量",
+    "entryPrice": "入场价",
+    "stopPrice": "止损价",
+    "riskPerShare": "每股风险",
+    "totalRisk": "总风险",
+    "add": "添加持仓",
+    "adding": "添加中...",
+    "cancel": "取消",
+    "success": "持仓添加成功",
+    "error": "保存持仓失败"
+  },
+  "editShares": {
+    "title": "编辑持仓量",
+    "currentShares": "当前持仓量",
+    "newShares": "新持仓量",
+    "change": "变化",
+    "update": "更新持仓量",
+    "updating": "更新中...",
+    "cancel": "取消",
+    "success": "持仓量更新成功",
+    "error": "更新持仓量失败"
   }
 }

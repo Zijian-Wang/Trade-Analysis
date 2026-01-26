@@ -84,9 +84,10 @@ export function TradeInputCard({
       riskPerTrade,
       entryPrice,
       stopLoss,
+      market,
     )
     return position.riskAmount
-  }, [parentTrade, portfolioCapital, riskPerTrade, entryPrice, stopLoss])
+  }, [parentTrade, portfolioCapital, riskPerTrade, entryPrice, stopLoss, market])
 
   // Sync risk input value with prop when not focused (e.g. when slider moves)
   useEffect(() => {
@@ -469,6 +470,7 @@ export function TradeInputCard({
               }
               setIsTyping(false)
             }}
+            placeholder={market === 'CN' ? '510300' : undefined}
             className={`text-xl sm:text-2xl font-semibold h-auto py-2 sm:py-2.5 transition-all ${
               isDarkMode
                 ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'

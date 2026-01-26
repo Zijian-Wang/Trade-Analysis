@@ -6,7 +6,8 @@
     "region_cn": "🇨🇳 CN",
     "nav_entry": "Entry",
     "nav_active": "Active Positions",
-    "nav_portfolio": "Portfolio Overview"
+    "nav_portfolio": "Portfolio Overview",
+    "portfolioWip": "This feature is currently work in progress"
   },
   "tradeInput": {
     "tickerSymbol": "Ticker Symbol",
@@ -54,7 +55,9 @@
       "close": "Close Position",
       "confirmClose": "Close this position?",
       "positionClosed": "Position closed",
-      "closeFailed": "Failed to close position"
+      "closeFailed": "Failed to close position",
+      "addManualPosition": "Add Position",
+      "editShares": "Edit Shares"
     }
   },
   "portfolioSummary": {
@@ -161,5 +164,33 @@
     "lastSync": "Last synced",
     "syncing": "Syncing...",
     "unlinkAccount": "Unlink Account"
+  },
+  "manualPosition": {
+    "title": "Add Manual Position",
+    "tickerSymbol": "Ticker Symbol",
+    "direction": "Direction",
+    "long": "Long",
+    "short": "Short",
+    "shares": "Shares",
+    "entryPrice": "Entry Price",
+    "stopPrice": "Stop Price",
+    "riskPerShare": "Risk Per Share",
+    "totalRisk": "Total Risk",
+    "add": "Add Position",
+    "adding": "Adding...",
+    "cancel": "Cancel",
+    "success": "Position added successfully",
+    "error": "Failed to save position"
+  },
+  "editShares": {
+    "title": "Edit Shares",
+    "currentShares": "Current Shares",
+    "newShares": "New Shares",
+    "change": "Change",
+    "update": "Update Shares",
+    "updating": "Updating...",
+    "cancel": "Cancel",
+    "success": "Shares updated successfully",
+    "error": "Failed to update shares"
   }
 }

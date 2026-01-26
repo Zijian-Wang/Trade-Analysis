@@ -8,6 +8,7 @@ export const calculatePositionSize = (
   riskPercent: number,
   entryPrice: number,
   stopLoss: number,
+  market?: 'US' | 'CN',
 ) => {
   if (!entryPrice || !stopLoss || entryPrice === stopLoss) {
     return { shares: 0, riskAmount: 0, riskPerShare: 0 }
@@ -17,7 +18,12 @@ export const calculatePositionSize = (
   const priceRisk = Math.abs(entryPrice - stopLoss)
 
   // Round shares down to be safe (or nearest integer)
-  const shares = Math.floor(riskAmount / priceRisk)
+  let shares = Math.floor(riskAmount / priceRisk)
+
+  // For CN market, round to nearest 100 share lots
+  if (market === 'CN') {
+    shares = Math.floor(shares / 100) * 100
+  }
 
   return {
     shares,
