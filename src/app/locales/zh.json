@@ -6,7 +6,8 @@
     "region_cn": "🇨🇳 A股",
     "nav_entry": "交易计划",
     "nav_active": "持仓管理",
-    "nav_portfolio": "账户总览"
+    "nav_portfolio": "账户总览",
+    "portfolioWip": "此功能正在开发中"
   },
   "tradeInput": {
     "tickerSymbol": "交易代码",
@@ -22,25 +23,41 @@
     "entryPrice": "入场价",
     "stopLoss": "止损价",
     "target": "目标价 (可选)",
-    "logTrade": "记录交易"
+    "logTrade": "记录交易",
+    "addingToPosition": "正在添加到 {symbol} 持仓",
+    "freedRisk": "释放风险",
+    "remainingRiskBudget": "剩余风险预算",
+    "duplicateTrade": "此交易已记录。是否再次记录？",
+    "positionAdded": "持仓添加成功！"
   },
   "activePositions": {
     "title": "持仓管理",
     "totalRisk": "当前总风险",
+    "riskPercent": "风险占比",
     "positionCount": "持仓数量",
     "noPositions": "暂无持仓。请前往交易计划页面记录交易。",
     "col_symbol": "代码",
     "col_entry": "入场均价",
     "col_stop": "止损价",
+    "col_currentStop": "当前止损",
+    "col_currentPrice": "当前价格",
     "col_shares": "持仓量",
     "col_risk": "风险金额",
+    "col_riskRemaining": "剩余风险",
     "col_actions": "操作",
+    "unsupported": "不支持",
+    "noStop": "无止损",
+    "syncedFromBroker": "来自 Schwab",
     "actions": {
-      "chart": "图表",
+      "chart": "查看风险可视化",
       "adjustStop": "调整止损",
       "addToPosition": "加仓",
       "close": "平仓",
-      "confirmClose": "确定要平仓吗？"
+      "confirmClose": "确定要平仓吗？",
+      "positionClosed": "持仓已平仓",
+      "closeFailed": "平仓失败",
+      "addManualPosition": "添加持仓",
+      "editShares": "编辑持仓量"
     }
   },
   "portfolioSummary": {
@@ -55,6 +72,7 @@
   },
   "stopAdjust": {
     "title": "调整止损",
+    "contractStopTitle": "设置合约止损覆盖",
     "current": "当前止损",
     "newStop": "新止损价",
     "currentRisk": "当前风险",
@@ -63,7 +81,11 @@
     "confirm": "确认调整",
     "cancel": "取消",
     "success": "止损已更新",
-    "error": "更新止损失败"
+    "error": "更新止损失败",
+    "contractStop": "合约止损覆盖",
+    "effectiveStop": "有效止损",
+    "selectContract": "选择合约",
+    "removeOverride": "移除覆盖"
   },
   "positionSize": {
     "title": "仓位大小",
@@ -129,6 +151,46 @@
     "changePassword": "修改密码",
     "deleteAccount": "删除账号",
     "save": "保存设置",
-    "saved": "设置已保存！"
+    "saved": "设置已保存！",
+    "emailChangeWarning": "更改邮箱需要密码确认"
+  },
+  "schwab": {
+    "linkAccount": "关联 Schwab 账户",
+    "syncAccount": "同步 Schwab 账户",
+    "accountLinked": "Schwab 账户关联成功",
+    "syncSuccess": "账户同步成功",
+    "syncFailed": "账户同步失败",
+    "reAuthRequired": "需要重新认证。请重新关联您的 Schwab 账户。",
+    "lastSync": "最后同步",
+    "syncing": "同步中...",
+    "unlinkAccount": "取消关联"
+  },
+  "manualPosition": {
+    "title": "手动添加持仓",
+    "tickerSymbol": "交易代码",
+    "direction": "方向",
+    "long": "做多",
+    "short": "做空",
+    "shares": "持仓量",
+    "entryPrice": "入场价",
+    "stopPrice": "止损价",
+    "riskPerShare": "每股风险",
+    "totalRisk": "总风险",
+    "add": "添加持仓",
+    "adding": "添加中...",
+    "cancel": "取消",
+    "success": "持仓添加成功",
+    "error": "保存持仓失败"
+  },
+  "editShares": {
+    "title": "编辑持仓量",
+    "currentShares": "当前持仓量",
+    "newShares": "新持仓量",
+    "change": "变化",
+    "update": "更新持仓量",
+    "updating": "更新中...",
+    "cancel": "取消",
+    "success": "持仓量更新成功",
+    "error": "更新持仓量失败"
   }
 }

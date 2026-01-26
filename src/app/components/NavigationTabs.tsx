@@ -1,4 +1,5 @@
 import { useLanguage } from "../context/LanguageContext";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface NavigationTabsProps {
   currentPage: 'main' | 'active' | 'portfolio' | 'history' | 'settings';
@@ -32,16 +33,29 @@ export function NavigationTabs({ currentPage, onNavigate }: NavigationTabsProps)
           >
             {t('header.nav_active')}
           </button>
-          <button
-            onClick={() => onNavigate('portfolio')}
-            className={`py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap ${
-              currentPage === 'portfolio'
-                ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-700'
-            }`}
-          >
-            {t('header.nav_portfolio')}
-          </button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  disabled
+                  className={`py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap cursor-not-allowed opacity-50 ${
+                    currentPage === 'portfolio'
+                      ? 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'
+                      : 'border-transparent text-gray-400 dark:text-gray-500'
+                  }`}
+                >
+                  {t('header.nav_portfolio')}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('header.portfolioWip')}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </nav>
       </div>
     </div>

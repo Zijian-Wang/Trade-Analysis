@@ -6,7 +6,8 @@
     "region_cn": "🇨🇳 CN",
     "nav_entry": "Entry",
     "nav_active": "Active Positions",
-    "nav_portfolio": "Portfolio Overview"
+    "nav_portfolio": "Portfolio Overview",
+    "portfolioWip": "This feature is currently work in progress"
   },
   "tradeInput": {
     "tickerSymbol": "Ticker Symbol",
@@ -22,25 +23,41 @@
     "entryPrice": "Entry Price",
     "stopLoss": "Stop Loss",
     "target": "Target (Optional)",
-    "logTrade": "Log Trade to Journal"
+    "logTrade": "Log Trade to Journal",
+    "addingToPosition": "Adding to {symbol} Position",
+    "freedRisk": "Freed Risk",
+    "remainingRiskBudget": "Remaining Risk Budget",
+    "duplicateTrade": "This trade was already logged. Log it again?",
+    "positionAdded": "Position added successfully!"
   },
   "activePositions": {
     "title": "Active Positions",
     "totalRisk": "Total Active Risk",
+    "riskPercent": "Risk % of Account",
     "positionCount": "Active Positions",
     "noPositions": "No active positions. Go to Entry Planning to log a trade.",
     "col_symbol": "Symbol",
     "col_entry": "Entry",
     "col_stop": "Stop",
+    "col_currentStop": "Current Stop",
+    "col_currentPrice": "Current Price",
     "col_shares": "Shares",
     "col_risk": "Risk",
+    "col_riskRemaining": "Risk Remaining",
     "col_actions": "Actions",
+    "unsupported": "Unsupported",
+    "noStop": "No Stop",
+    "syncedFromBroker": "Synced from Schwab",
     "actions": {
-      "chart": "Chart",
+      "chart": "View Risk Visualization",
       "adjustStop": "Adjust Stop",
       "addToPosition": "Add to Position",
       "close": "Close Position",
-      "confirmClose": "Close this position?"
+      "confirmClose": "Close this position?",
+      "positionClosed": "Position closed",
+      "closeFailed": "Failed to close position",
+      "addManualPosition": "Add Position",
+      "editShares": "Edit Shares"
     }
   },
   "portfolioSummary": {
@@ -55,6 +72,7 @@
   },
   "stopAdjust": {
     "title": "Adjust Stop Loss",
+    "contractStopTitle": "Set Contract Stop Override",
     "current": "Current",
     "newStop": "New Stop",
     "currentRisk": "Current Risk",
@@ -63,7 +81,11 @@
     "confirm": "Confirm Adjustment",
     "cancel": "Cancel",
     "success": "Stop loss updated",
-    "error": "Failed to update stop loss"
+    "error": "Failed to update stop loss",
+    "contractStop": "Contract Stop Override",
+    "effectiveStop": "Effective Stop",
+    "selectContract": "Select Contract",
+    "removeOverride": "Remove Override"
   },
   "positionSize": {
     "title": "Position Size",
@@ -129,6 +151,46 @@
     "changePassword": "Change Password",
     "deleteAccount": "Delete Account",
     "save": "Save Changes",
-    "saved": "Settings saved!"
+    "saved": "Settings saved!",
+    "emailChangeWarning": "Changing your email requires password confirmation"
+  },
+  "schwab": {
+    "linkAccount": "Link Schwab Account",
+    "syncAccount": "Sync Schwab Account",
+    "accountLinked": "Schwab account linked successfully",
+    "syncSuccess": "Account synced successfully",
+    "syncFailed": "Failed to sync account",
+    "reAuthRequired": "Re-authentication required. Please link your Schwab account again.",
+    "lastSync": "Last synced",
+    "syncing": "Syncing...",
+    "unlinkAccount": "Unlink Account"
+  },
+  "manualPosition": {
+    "title": "Add Manual Position",
+    "tickerSymbol": "Ticker Symbol",
+    "direction": "Direction",
+    "long": "Long",
+    "short": "Short",
+    "shares": "Shares",
+    "entryPrice": "Entry Price",
+    "stopPrice": "Stop Price",
+    "riskPerShare": "Risk Per Share",
+    "totalRisk": "Total Risk",
+    "add": "Add Position",
+    "adding": "Adding...",
+    "cancel": "Cancel",
+    "success": "Position added successfully",
+    "error": "Failed to save position"
+  },
+  "editShares": {
+    "title": "Edit Shares",
+    "currentShares": "Current Shares",
+    "newShares": "New Shares",
+    "change": "Change",
+    "update": "Update Shares",
+    "updating": "Updating...",
+    "cancel": "Cancel",
+    "success": "Shares updated successfully",
+    "error": "Failed to update shares"
   }
 }
