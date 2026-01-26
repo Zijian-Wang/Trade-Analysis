@@ -1,4 +1,4 @@
-import { Moon, Sun } from "lucide-react";
+import { Moon, Sun, SunMoon, Check } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "next-themes";
 import {
@@ -8,6 +8,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
 import { UserMenu } from "./UserMenu";
 
 interface HeaderProps {
@@ -43,16 +49,45 @@ export function Header({ market, onMarketChange, currentPage, onNavigate }: Head
 
           <div className="flex items-center gap-1 sm:gap-2">
             {/* Theme Toggle */}
-            <button
-              onClick={() => setTheme(isDark ? "light" : "dark")}
-              className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400">
-              <span className="sr-only">Toggle theme</span>
-              {isDark ? (
-                <Sun className="w-[18px] h-[18px]" />
-              ) : (
-                <Moon className="w-[18px] h-[18px]" />
-              )}
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="p-2 rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 focus:outline-none"
+                >
+                  <span className="sr-only">Toggle theme</span>
+                  {theme === 'dark' ? (
+                    <Moon className="w-[18px] h-[18px]" />
+                  ) : theme === 'light' ? (
+                    <Sun className="w-[18px] h-[18px]" />
+                  ) : (
+                    <SunMoon className="w-[18px] h-[18px]" />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="dark:bg-gray-800 dark:border-gray-700 dark:text-gray-200 bg-white border-gray-200 min-w-[130px]">
+                <DropdownMenuItem onClick={() => setTheme("light")} className="dark:focus:bg-gray-700 dark:focus:text-white cursor-pointer justify-between">
+                  <div className="flex items-center">
+                    <Sun className="mr-2 h-4 w-4" />
+                    <span>Light</span>
+                  </div>
+                  {theme === 'light' && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("dark")} className="dark:focus:bg-gray-700 dark:focus:text-white cursor-pointer justify-between">
+                  <div className="flex items-center">
+                    <Moon className="mr-2 h-4 w-4" />
+                    <span>Dark</span>
+                  </div>
+                  {theme === 'dark' && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setTheme("system")} className="dark:focus:bg-gray-700 dark:focus:text-white cursor-pointer justify-between">
+                  <div className="flex items-center">
+                    <SunMoon className="mr-2 h-4 w-4" />
+                    <span>Auto</span>
+                  </div>
+                  {theme === 'system' && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Market Selector */}
             <Select value={market} onValueChange={onMarketChange}>
