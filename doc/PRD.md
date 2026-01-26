@@ -19,7 +19,7 @@ This product is not a signal generator or broker replacement.
 
 1. Risk-first, P/L-second  
 2. Structure defines validity  
-3. Only three trade states: Planned → Active → Closed  
+3. Trades are logged as Active with follow-up actions (add to position, close)  
 4. Localization-first (CN / EN)  
 5. Core logic must remain UI-agnostic  
 
@@ -27,11 +27,9 @@ This product is not a signal generator or broker replacement.
 
 ## 3. Trade Lifecycle
 
-### 3.1 Planned (Entry Setup)
+### 3.1 Entry Setup (Log Active Trade)
 
-Defines a new risk contract.
-
-**Inputs**
+Users log trades directly as **Active** positions. Entry Setup calculates position size and risk based on:
 - Account size
 - Risk %
 - Entry price
@@ -43,18 +41,19 @@ Defines a new risk contract.
 - Initial R
 
 **Notes**
-- Once a trade becomes Active, initial parameters must not be mutated.
-- Entry Setup must be reusable in both standalone and contextual modes.
+- Trades are created with `status: 'ACTIVE'` by default
+- Initial parameters (entry, structure stop) must not be mutated after creation
+- Entry Setup must be reusable in both standalone and contextual modes (adding to existing position)
 
 ---
 
 ### 3.2 Active (Position Management)
 
-Represents all live positions with mutable risk.
+Represents all live positions with mutable risk. All logged trades start as Active.
 
 **Key Capabilities**
 - Adjust stop (structure or contract-level override)
-- Add to position (new risk contract)
+- Add to position (new risk contract via Entry Setup in context mode)
 - Partial or full close
 
 ---
@@ -117,17 +116,18 @@ Purpose:
 
 ---
 
-### 5.3 Chart View (Toggle)
+### 5.3 Chart View (Deferred to Phase 5)
 
-Optional chart mode for each position:
-- Daily candlesticks
+Chart view has been deferred to a later phase due to price data mismatch issues. The current implementation focuses on the Visual Risk Line for risk comprehension.
+
+**Planned Features (Phase 5):**
+- Daily candlesticks with historical data
 - Horizontal lines:
   - Entry
   - Structure stop
   - Contract stop (if overridden)
   - Target (optional)
-
-Charts are read-only and assistive.
+- Charts are read-only and assistive
 
 ---
 
@@ -182,14 +182,28 @@ Recommended conceptual components:
 
 - Signal generation
 - Backtesting
-- Broker integration
 - Strategy optimization
 - Alerts / automation
 
 ---
 
-## 11. Current Status
+## 11. Broker Integration (Phase 2)
+
+Broker integration for auto-syncing active positions and stop orders is planned as a Phase 2 feature. See `doc/schwab-api-research.md` for implementation plan.
+
+**Key Requirements:**
+- OAuth 2.0 authentication flow (backend proxy required)
+- Auto-sync active positions and working stop orders
+- Map broker data to Trade Analysis models
+- Handle unsupported instrument types (multi-leg options, complex derivatives) with clear labeling
+- Generate current account risk status from synced data
+
+---
+
+## 12. Current Status
 
 - Phase 1 logic implemented
-- Data persistence enabled
-- Future work will extend Active Management and visualization layers
+- Data persistence enabled (Firebase + LocalStorage)
+- Active position management UI complete
+- Portfolio overview implemented
+- Future work: Broker integration, enhanced visualization, contract stop override UI
