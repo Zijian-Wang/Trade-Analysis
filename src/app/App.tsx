@@ -4,10 +4,13 @@ import { PositionSize } from "./components/PositionSize";
 import { TradeHistory } from './components/TradeHistory';
 import { SettingsModal } from './components/SettingsModal';
 import { TradeHistoryPage } from './pages/TradeHistoryPage';
+import { ActivePositionsPage } from './pages/ActivePositionsPage';
+import { PortfolioOverviewPage } from './pages/PortfolioOverviewPage';
 import { EmailVerificationBanner } from './components/EmailVerificationBanner';
 import { ArrowUpRight } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Header } from "./components/Header";
+import { NavigationTabs } from "./components/NavigationTabs";
 import { Toaster } from "sonner";
 
 // Hooks
@@ -17,7 +20,7 @@ import { useAuth } from "./context/AuthContext";
 import { useUserPreferences } from "./context/UserPreferencesContext";
 
 // Services
-import { saveTrade, getTrades, deleteTrade, Trade } from "./services/tradeService";
+import { saveTrade, getTrades, deleteTrade, updateTrade, Trade } from "./services/tradeService";
 
 export default function App() {
   // Theme
@@ -29,7 +32,9 @@ export default function App() {
   const { preferences } = useUserPreferences();
 
   // Navigation
-  const [currentPage, setCurrentPage] = useState<'main' | 'history' | 'settings'>('main');
+  // Extended navigation state
+  const [currentPage, setCurrentPage] = useState<'main' | 'active' | 'portfolio' | 'history' | 'settings'>('main');
+  const [entryContext, setEntryContext] = useState<Trade | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Market & Portfolio Settings
@@ -75,7 +80,7 @@ export default function App() {
     sentiment,
     setSentiment,
     position,
-  } = useTradeCalculator(portfolioCapital);
+  } = useTradeCalculator(portfolioCapital, market);
 
   // Trade History
   const [loggedTrades, setLoggedTrades] = useState<Trade[]>([]);
@@ -116,6 +121,46 @@ export default function App() {
       }
     }
 
+    // Phase 2: Check if adding to existing position
+    if (entryContext && entryContext.id) {
+       // Create new contract
+       const newContract = {
+         id: crypto.randomUUID(),
+         entryPrice: entryPrice,
+         shares: position.shares,
+         riskAmount: position.riskAmount,
+         createdAt: Date.now()
+       };
+       
+       // Update existing trade
+       const updatedContracts = [...(entryContext.contracts || []), newContract];
+       
+       // Calculate new weighted entry (optional, but good for display)
+       // For now, we just append content.
+       
+       try {
+         await updateTrade(user?.uid || null, entryContext.id, {
+           contracts: updatedContracts,
+           // Update aggregate fields if needed (positionSize, riskAmount)
+           positionSize: entryContext.positionSize + position.shares,
+           riskAmount: entryContext.riskAmount + position.riskAmount
+         });
+         
+         setLoggedTrades(prev => prev.map(t => t.id === entryContext.id ? { 
+            ...t, 
+            contracts: updatedContracts,
+            positionSize: t.positionSize + position.shares,
+            riskAmount: t.riskAmount + position.riskAmount
+         } : t));
+         
+         setEntryContext(null);
+         alert("Position added successfully!");
+       } catch (error) {
+         console.error("Failed to update position", error);
+       }
+       return;
+    }
+
     const newTradeData = {
       date: today,
       symbol: tickerSymbol,
@@ -129,6 +174,16 @@ export default function App() {
       riskAmount: position.riskAmount,
       rrRatio: position.rrRatio ?? null,
       market,
+      // Phase 2 Fields
+      status: 'ACTIVE' as const, // Default to Active when logging
+      structureStop: stopLoss,
+      contracts: [{
+        id: crypto.randomUUID(),
+        entryPrice: entryPrice,
+        shares: position.shares,
+        riskAmount: position.riskAmount,
+        createdAt: Date.now()
+      }],
     };
 
     try {
@@ -139,7 +194,7 @@ export default function App() {
     }
   }, [
     position, tickerSymbol, entryPrice, stopLoss, direction,
-    sentiment, target, riskPerTrade, market, user, loggedTrades
+    sentiment, target, riskPerTrade, market, user, loggedTrades, entryContext
   ]);
 
   const handleDeleteTrade = useCallback(async (id: string) => {
@@ -159,12 +214,20 @@ export default function App() {
     }
   };
 
-  const handleNavigate = (page: 'main' | 'history' | 'settings') => {
+  const handleNavigate = (page: 'main' | 'active' | 'portfolio' | 'history' | 'settings') => {
     if (page === 'settings') {
       setSettingsOpen(true);
     } else {
       setCurrentPage(page);
+      if (page !== 'main') {
+        setEntryContext(null); // Clear context when leaving main
+      }
     }
+  };
+
+  const handleAddToPosition = (parentTrade: Trade) => {
+    setEntryContext(parentTrade);
+    setCurrentPage('main');
   };
 
   // Render trade history page
@@ -199,7 +262,13 @@ export default function App() {
       <Header
         market={market}
         onMarketChange={setMarket}
+        currentPage={currentPage}
         onNavigate={handleNavigate}
+      />
+
+      <NavigationTabs 
+        currentPage={currentPage} 
+        onNavigate={handleNavigate} 
       />
 
       {/* Email Verification Banner */}
@@ -207,7 +276,17 @@ export default function App() {
 
       {/* Main Content */}
       <main className="max-w-[1260px] mx-auto px-4 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 lg:items-stretch">
+        
+        {currentPage === 'active' && (
+           <ActivePositionsPage onAddToPosition={handleAddToPosition} />
+        )}
+
+        {currentPage === 'portfolio' && (
+           <PortfolioOverviewPage />
+        )}
+
+        {currentPage === 'main' && (
+        <><div className="grid grid-cols-1 lg:grid-cols-5 gap-3 sm:gap-4 md:gap-6 lg:items-stretch">
           {/* Left Column - Trade Input - takes 3 of 5 columns */}
           <div className="lg:col-span-3 flex">
             <TradeInputCard
@@ -231,6 +310,8 @@ export default function App() {
               setTarget={setTarget}
               isDarkMode={isDarkMode}
               onLogTrade={handleLogTrade}
+              parentTrade={entryContext}
+              onClearContext={() => setEntryContext(null)}
             />
           </div>
 
@@ -279,7 +360,8 @@ export default function App() {
             isDarkMode={isDarkMode}
             onDeleteTrade={handleDeleteTrade}
           />
-        </div>
+        </div></>
+        )}
       </main>
 
       {/* Settings Modal */}

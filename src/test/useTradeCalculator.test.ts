@@ -6,7 +6,7 @@ describe('useTradeCalculator', () => {
   const portfolioCapital = 100000;
 
   it('should initialize with default values', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     expect(result.current.tickerSymbol).toBe('');
     expect(result.current.direction).toBe('long');
@@ -18,14 +18,14 @@ describe('useTradeCalculator', () => {
   });
 
   it('should not calculate position without required inputs', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     expect(result.current.position.canCalculate).toBe(false);
     expect(result.current.position.shares).toBe(0);
   });
 
   it('should calculate position correctly for long trade', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     act(() => {
       result.current.setTickerSymbol('AAPL');
@@ -42,7 +42,7 @@ describe('useTradeCalculator', () => {
   });
 
   it('should calculate position correctly for short trade', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     act(() => {
       result.current.setTickerSymbol('TSLA');
@@ -59,7 +59,7 @@ describe('useTradeCalculator', () => {
   });
 
   it('should reject invalid stop loss for long trade', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     act(() => {
       result.current.setTickerSymbol('AAPL');
@@ -71,7 +71,7 @@ describe('useTradeCalculator', () => {
   });
 
   it('should reject invalid stop loss for short trade', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     act(() => {
       result.current.setTickerSymbol('TSLA');
@@ -84,7 +84,7 @@ describe('useTradeCalculator', () => {
   });
 
   it('should calculate R:R ratio when target is provided', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     act(() => {
       result.current.setTickerSymbol('AAPL');
@@ -101,7 +101,7 @@ describe('useTradeCalculator', () => {
   });
 
   it('should update risk per trade', () => {
-    const { result } = renderHook(() => useTradeCalculator(portfolioCapital));
+    const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'US'));
 
     act(() => {
       result.current.setTickerSymbol('AAPL');
@@ -116,5 +116,49 @@ describe('useTradeCalculator', () => {
     // Shares = 1000 / 5 = 200
     expect(result.current.position.shares).toBe(200);
     expect(result.current.position.riskAmount).toBe(1000);
+  });
+
+
+  describe('CN Market Specifics', () => {
+    it('should round shares down to nearest 100 for CN market', () => {
+      const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'CN'));
+
+      act(() => {
+        result.current.setTickerSymbol('600519');
+        result.current.setEntryPrice(10);
+        result.current.setStopLoss(9);
+        // Risk = 750 (0.75% of 100k)
+        // Price Risk = 1
+        // Raw Shares = 750
+        // Rounded Shares should be 700 (if we change risk to make it not exact)
+        result.current.setRiskPerTrade(0.753); // Risk ~753 -> Shares 753 -> Round to 700
+      });
+
+      expect(result.current.position.canCalculate).toBe(true);
+      // Risk = 753
+      // Shares = 753 / 1 = 753 -> Rounded down to 700
+      expect(result.current.position.shares).toBe(700);
+      
+      // Actual Risk Amount should be updated based on rounded shares
+      // 700 * 1 = 700
+      expect(result.current.position.riskAmount).toBe(700);
+    });
+
+    it('should return 0 shares if calculation is less than 100 for CN market', () => {
+      const { result } = renderHook(() => useTradeCalculator(portfolioCapital, 'CN'));
+
+      act(() => {
+        result.current.setTickerSymbol('600519');
+        result.current.setEntryPrice(100);
+        result.current.setStopLoss(90);
+        // Risk = 750
+        // Price Risk = 10
+        // Raw Shares = 75
+        // Rounded Shares should be 0
+      });
+
+      expect(result.current.position.shares).toBe(0);
+      expect(result.current.position.riskAmount).toBe(0);
+    });
   });
 });

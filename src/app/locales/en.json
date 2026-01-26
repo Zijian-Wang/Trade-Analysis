@@ -3,7 +3,10 @@
     "title": "Trade Analysis",
     "subtitle": "Risk Management & Position Sizing",
     "region_us": "🇺🇸 US",
-    "region_cn": "🇨🇳 CN"
+    "region_cn": "🇨🇳 CN",
+    "nav_entry": "Entry",
+    "nav_active": "Active Positions",
+    "nav_portfolio": "Portfolio Overview"
   },
   "tradeInput": {
     "tickerSymbol": "Ticker Symbol",
@@ -20,6 +23,47 @@
     "stopLoss": "Stop Loss",
     "target": "Target (Optional)",
     "logTrade": "Log Trade to Journal"
+  },
+  "activePositions": {
+    "title": "Active Positions",
+    "totalRisk": "Total Active Risk",
+    "positionCount": "Active Positions",
+    "noPositions": "No active positions. Go to Entry Planning to log a trade.",
+    "col_symbol": "Symbol",
+    "col_entry": "Entry",
+    "col_stop": "Stop",
+    "col_shares": "Shares",
+    "col_risk": "Risk",
+    "col_actions": "Actions",
+    "actions": {
+      "chart": "Chart",
+      "adjustStop": "Adjust Stop",
+      "addToPosition": "Add to Position",
+      "close": "Close Position",
+      "confirmClose": "Close this position?"
+    }
+  },
+  "portfolioSummary": {
+    "title": "Portfolio Overview",
+    "overview": "Portfolio Overview",
+    "riskAllocation": "Risk Allocation",
+    "capitalAtRisk": "Capital at Risk",
+    "safeCapital": "Safe Capital",
+    "cash": "Cash",
+    "deployedRisk": "Deployed Risk",
+    "noActivePositions": "No active positions"
+  },
+  "stopAdjust": {
+    "title": "Adjust Stop Loss",
+    "current": "Current",
+    "newStop": "New Stop",
+    "currentRisk": "Current Risk",
+    "newRisk": "New Risk",
+    "change": "Change",
+    "confirm": "Confirm Adjustment",
+    "cancel": "Cancel",
+    "success": "Stop loss updated",
+    "error": "Failed to update stop loss"
   },
   "positionSize": {
     "title": "Position Size",

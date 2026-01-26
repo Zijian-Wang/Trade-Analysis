@@ -7,7 +7,10 @@ import { useState, useEffect } from 'react';
 import { Loader } from './ui/loader';
 import { useLanguage } from '../context/LanguageContext';
 import { Button } from './ui/button';
-import { typographyVariants } from './ui/typography';
+import { Typography } from './ui/typography';
+import { CornerDownRight, X, BarChart3 } from "lucide-react";
+import { MarketChart } from "./MarketChart";
+import { Trade } from '../services/tradeService';
 
 interface TradeInputCardProps {
   market: 'US' | 'CN';
@@ -30,6 +33,8 @@ interface TradeInputCardProps {
   setTarget: (value: string) => void;
   isDarkMode: boolean;
   onLogTrade: () => void;
+  parentTrade?: Trade | null;
+  onClearContext?: () => void;
 }
 
 export function TradeInputCard({
@@ -53,6 +58,8 @@ export function TradeInputCard({
   setTarget,
   isDarkMode,
   onLogTrade,
+  parentTrade,
+  onClearContext
 }: TradeInputCardProps) {
   const { t } = useLanguage();
   const [portfolioInputValue, setPortfolioInputValue] = useState(portfolioCapital.toString());
@@ -69,6 +76,18 @@ export function TradeInputCard({
       setRiskInputValue(riskPerTrade.toFixed(2));
     }
   }, [riskPerTrade, isRiskFocused]);
+
+  // Handle Parent Trade Context
+  useEffect(() => {
+    if (parentTrade) {
+      setTickerSymbol(parentTrade.symbol);
+      setDirection(parentTrade.direction);
+      setSentiment(parentTrade.setup);
+      // Optional: Set stop loss to existing structure stop
+      setStopLoss(parentTrade.structureStop);
+      setTarget(parentTrade.target ? parentTrade.target.toString() : '');
+    }
+  }, [parentTrade, setTickerSymbol, setDirection, setSentiment, setStopLoss, setTarget]);
 
 
   // Auto-fetch price when ticker changes and not typing
@@ -215,12 +234,29 @@ export function TradeInputCard({
       ? 'bg-gray-800 border-gray-700'
       : 'bg-white border-gray-200'
       }`}>
+      
+      {/* Context Mode Banner */}
+      {parentTrade && (
+        <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg flex items-center justify-between">
+          <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+            <CornerDownRight size={18} />
+            <div className="text-sm font-medium">Adding to {parentTrade.symbol} Position</div>
+          </div>
+          <button 
+            onClick={onClearContext}
+            className="p-1 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-full text-blue-500"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      )}
+
       <div className="space-y-4 flex-1">
         {/* Portfolio Section */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 items-end">
           {/* Portfolio Capital */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.portfolioCapital')}</Label>
+            <Typography variant="label">{t('tradeInput.portfolioCapital')}</Typography>
             <div className="relative">
               <span className={`absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 text-base sm:text-lg font-medium transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-300'
                 }
@@ -241,7 +277,7 @@ export function TradeInputCard({
 
           {/* Risk Per Trade */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.riskPerTrade')}</Label>
+            <Typography variant="label">{t('tradeInput.riskPerTrade')}</Typography>
 
             <div className="flex items-start gap-4">
               {/* Input Box - Full width on mobile, Compact on desktop */}
@@ -291,7 +327,7 @@ export function TradeInputCard({
 
         {/* Ticker Symbol */}
         <div className="space-y-2">
-          <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.tickerSymbol')}</Label>
+          <Typography variant="label">{t('tradeInput.tickerSymbol')}</Typography>
           <Input
             type="text"
             autoCorrect="off"
@@ -317,7 +353,7 @@ export function TradeInputCard({
         <div className="grid grid-cols-2 gap-3 sm:gap-4">
           {/* Direction */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.direction')}</Label>
+            <Typography variant="label">{t('tradeInput.direction')}</Typography>
             <div className={`flex rounded-full p-0.5 sm:p-1 transition-colors ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'
               }
               `}>
@@ -352,7 +388,7 @@ export function TradeInputCard({
 
           {/* Sentiment */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.setup')}</Label>
+            <Typography variant="label">{t('tradeInput.setup')}</Typography>
             <div className={`flex rounded-full p-0.5 sm:p-1 transition-colors ${isDarkMode ? 'bg-gray-900' : 'bg-gray-100'
               }
               `}>
@@ -395,7 +431,7 @@ export function TradeInputCard({
         <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {/* Entry Price */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.entryPrice')}</Label>
+            <Typography variant="label">{t('tradeInput.entryPrice')}</Typography>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
                 }
@@ -437,7 +473,7 @@ export function TradeInputCard({
 
           {/* Stop Loss */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.stopLoss')}</Label>
+            <Typography variant="label">{t('tradeInput.stopLoss')}</Typography>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
                 }
@@ -489,7 +525,7 @@ export function TradeInputCard({
 
           {/* Target */}
           <div className="space-y-2">
-            <Label className={typographyVariants({ variant: 'label' })}>{t('tradeInput.target')}</Label>
+            <Typography variant="label">{t('tradeInput.target')}</Typography>
             <div className="relative">
               <span className={`absolute left-2 sm:left-2.5 top-1/2 -translate-y-1/2 text-sm sm:text-base font-semibold transition-colors ${isDarkMode ? 'text-gray-600' : 'text-gray-400'
                 }
@@ -538,7 +574,7 @@ export function TradeInputCard({
           disabled={!canCalculate}
           className="w-full h-auto py-3 sm:py-3.5 px-4 rounded-xl text-sm sm:text-base shadow-md hover:shadow-lg hover:-translate-y-0.5"
         >
-          <span>{t('tradeInput.logTrade')}</span>
+          <span>{parentTrade ? 'Add to Position' : t('tradeInput.logTrade')}</span>
           <ArrowUpRight className="ml-2 h-4 w-4" />
         </Button>
       </div>
