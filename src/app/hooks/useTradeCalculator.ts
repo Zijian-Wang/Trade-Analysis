@@ -12,7 +12,8 @@ export interface TradeCalculationResult {
 }
 
 export function useTradeCalculator(
-  portfolioCapital: number
+  portfolioCapital: number,
+  market: "US" | "CN"
 ) {
   const [tickerSymbol, setTickerSymbol] = useState("");
   const [direction, setDirection] = useState<"long" | "short">("long");
@@ -65,9 +66,17 @@ export function useTradeCalculator(
       };
     }
 
-    const riskAmount = portfolioCapital * (riskPerTrade / 100);
+    let riskAmount = portfolioCapital * (riskPerTrade / 100);
     const priceRisk = Math.abs(entryPrice - stopLoss);
-    const shares = Math.round(riskAmount / priceRisk);
+    let shares = Math.round(riskAmount / priceRisk);
+
+    // Apply CN market rounding (100 share lots)
+    if (market === "CN") {
+      shares = Math.floor(shares / 100) * 100;
+      // Recalculate riskAmount based on actual rounded shares
+      riskAmount = shares * priceRisk;
+    }
+
     const value = shares * entryPrice;
     const riskPerShare = (priceRisk / entryPrice) * 100;
 
@@ -94,6 +103,7 @@ export function useTradeCalculator(
     direction,
     portfolioCapital,
     riskPerTrade,
+    market,
   ]);
 
   return {

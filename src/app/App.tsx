@@ -80,7 +80,7 @@ export default function App() {
     sentiment,
     setSentiment,
     position,
-  } = useTradeCalculator(portfolioCapital);
+  } = useTradeCalculator(portfolioCapital, market);
 
   // Trade History
   const [loggedTrades, setLoggedTrades] = useState<Trade[]>([]);
