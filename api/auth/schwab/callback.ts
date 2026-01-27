@@ -121,7 +121,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Get account numbers/hashes
     const accountsResponse = await fetch(
-      'https://api.schwabapi.com/v1/accounts/accountNumbers',
+      'https://api.schwabapi.com/trader/v1/accounts/accountNumbers',
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -130,9 +130,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )
 
     if (!accountsResponse.ok) {
-      return res
-        .status(400)
-        .json({ success: false, error: 'Failed to fetch account numbers' })
+      const errorText = await accountsResponse.text()
+      console.error('Failed to fetch account numbers:', accountsResponse.status, errorText)
+      return res.status(400).json({
+        success: false,
+        error: `Failed to fetch account numbers (${accountsResponse.status}): ${errorText.slice(0, 200)}`,
+      })
     }
 
     const accounts = (await accountsResponse.json()) as Array<{

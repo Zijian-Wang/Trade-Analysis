@@ -136,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Fetch positions AND balances
     const positionsResponse = await fetch(
-      `https://api.schwabapi.com/v1/accounts/${accountHash}?fields=positions`,
+      `https://api.schwabapi.com/trader/v1/accounts/${accountHash}?fields=positions`,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -164,7 +164,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const now = new Date()
 
     const ordersResponse = await fetch(
-      `https://api.schwabapi.com/v1/accounts/${accountHash}/orders?` +
+      `https://api.schwabapi.com/trader/v1/accounts/${accountHash}/orders?` +
         `fromEnteredTime=${sixtyDaysAgo.toISOString()}&` +
         `toEnteredTime=${now.toISOString()}&` +
         `status=WORKING`,
