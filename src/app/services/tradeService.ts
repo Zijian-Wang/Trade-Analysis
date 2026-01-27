@@ -53,6 +53,7 @@ export interface Trade {
     | 'UNSUPPORTED'
   isSupported?: boolean // For broker-synced positions
   syncedFromBroker?: boolean // Indicates if synced from Schwab
+  hasWorkingStop?: boolean // For broker-synced: does this position have a working stop order?
   currentPrice?: number // Live price (for display)
 
   createdAt?: Timestamp

@@ -18,6 +18,9 @@ export interface UserPreferences {
     US: number;
     CN: number;
   };
+  // Schwab integration
+  schwabLinked?: boolean;
+  schwabLastSyncedAt?: number;
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {

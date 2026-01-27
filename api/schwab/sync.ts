@@ -15,6 +15,42 @@ if (!getApps().length) {
 
 const db = getFirestore()
 
+interface SchwabAccountData {
+  securitiesAccount: {
+    type: string
+    accountNumber: string
+    roundTrips: number
+    isDayTrader: boolean
+    isClosingOnlyRestricted: boolean
+    pfcbFlag: boolean
+    positions?: SchwabPosition[]
+    currentBalances?: {
+      availableFunds: number
+      availableFundsNonMarginableTrade: number
+      buyingPower: number
+      buyingPowerNonMarginableTrade: number
+      dayTradingBuyingPower: number
+      dayTradingBuyingPowerCall: number
+      equity: number
+      equityPercentage: number
+      liquidationValue: number
+      longMarginValue: number
+      maintenanceCall: number
+      maintenanceRequirement: number
+      margin: number
+      marginBalance: number
+      marginEquity: number
+      moneyMarketFund: number
+      mutualFundValue: number
+      regTCall: number
+      shortMarginValue: number
+      shortOptionMarketValue: number
+      sma: number
+      cashBalance?: number
+    }
+  }
+}
+
 interface SchwabPosition {
   shortQuantity: number
   averagePrice: number
@@ -101,7 +137,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const accountHash = schwabAccount.accountHash
 
-    // Fetch positions
+    // Fetch positions AND balances
     const positionsResponse = await fetch(
       `https://api.schwabapi.com/v1/accounts/${accountHash}?fields=positions`,
       {
@@ -115,9 +151,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Failed to fetch positions' })
     }
 
-    const positionsData = await positionsResponse.json()
+    const positionsData: SchwabAccountData = await positionsResponse.json()
     const positions: SchwabPosition[] =
       positionsData.securitiesAccount?.positions || []
+
+    // Extract account value (liquidationValue = total account equity)
+    const accountBalances = positionsData.securitiesAccount?.currentBalances
+    const accountLiquidationValue = accountBalances?.liquidationValue || 0
+    const accountEquity = accountBalances?.equity || accountLiquidationValue
+    const cashBalance = accountBalances?.cashBalance || accountBalances?.availableFunds || 0
 
     // Fetch working orders (last 60 days)
     const sixtyDaysAgo = new Date()
@@ -172,23 +214,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Calculate effective stop
       const effectiveStop = matchingStopOrder?.stopPrice || null
+      const hasWorkingStop = effectiveStop !== null
 
-      // Calculate risk (if stop exists)
-      const riskAmount = effectiveStop
-        ? Math.abs(position.averagePrice - effectiveStop) * quantity
-        : 0
+      // For positions without stops, use 5% fallback for risk calculation display
+      // but flag them so users know they need to add a stop order
+      const fallbackStop = direction === 'long' 
+        ? position.averagePrice * 0.95  // 5% below entry for long
+        : position.averagePrice * 1.05  // 5% above entry for short
+      const displayStop = effectiveStop || fallbackStop
+
+      // Calculate risk (if stop exists, otherwise use fallback)
+      const riskAmount = Math.abs(position.averagePrice - displayStop) * quantity
 
       return {
         symbol,
         direction,
         entry: position.averagePrice,
-        stop: effectiveStop || position.averagePrice * 0.95, // Fallback if no stop
+        stop: displayStop,
         positionSize: quantity,
         riskAmount,
         market: 'US' as const, // Schwab is US market
         instrumentType,
         isSupported,
         syncedFromBroker: true,
+        hasWorkingStop, // Flag to indicate if position has a working stop order
         currentPrice: position.marketValue / quantity, // Approximate current price
         contracts: [
           {
@@ -252,6 +301,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         instrumentType: position.instrumentType,
         isSupported: position.isSupported,
         syncedFromBroker: true,
+        hasWorkingStop: position.hasWorkingStop, // Flag: does position have a working stop order?
         currentPrice: position.currentPrice,
         lastSyncedAt: Date.now(),
       }
@@ -284,11 +334,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     await batch.commit()
 
+    // Update user's Schwab account info with latest values
+    const syncedAt = Date.now()
+    await userRef.set(
+      {
+        schwabAccounts: [
+          {
+            ...schwabAccount,
+            accountValue: accountLiquidationValue,
+            accountEquity,
+            cashBalance,
+            lastSyncedAt: syncedAt,
+          },
+        ],
+        // Also update user preferences with Schwab account value for US market
+        // This makes Schwab the source of truth for US portfolio capital
+      },
+      { merge: true },
+    )
+
+    // Update user preferences to use Schwab account value for US market
+    const prefsRef = db.collection('users').doc(userId).collection('settings').doc('preferences')
+    await prefsRef.set(
+      {
+        defaultPortfolio: {
+          US: accountLiquidationValue,
+        },
+        schwabLinked: true,
+        schwabLastSyncedAt: syncedAt,
+      },
+      { merge: true },
+    )
+
     return res.status(200).json({
       success: true,
       positions: syncedPositions,
       portfolioRisk: totalRisk,
-      syncedAt: Date.now(),
+      portfolioValue: accountLiquidationValue,
+      accountEquity,
+      cashBalance,
+      syncedAt,
       savedCount,
     })
   } catch (error) {

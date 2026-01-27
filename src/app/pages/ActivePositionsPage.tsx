@@ -395,40 +395,60 @@ export function ActivePositionsPage({
     <TooltipProvider>
       <div className="space-y-6">
         {/* Schwab Account Linking */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-              {t('schwab.linkAccount')}
-            </h3>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {lastSyncTime
-                ? `${t('schwab.lastSync')}: ${new Date(lastSyncTime).toLocaleTimeString()}`
-                : 'Link your Schwab account to auto-sync positions'}
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleLinkSchwabAccount}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
-            >
-              <Link2 size={16} />
-              {t('schwab.linkAccount')}
-            </Button>
-            <Button
-              onClick={handleSyncSchwabAccount}
-              variant="outline"
-              size="sm"
-              disabled={isSyncing}
-              className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
-            >
-              <RefreshCw
-                size={16}
-                className={isSyncing ? 'animate-spin' : ''}
-              />
-              {t('schwab.syncAccount')}
-            </Button>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">
+                  {preferences.schwabLinked ? 'Schwab Account Connected' : t('schwab.linkAccount')}
+                </h3>
+                {preferences.schwabLinked && (
+                  <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
+                    Source of Truth
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                {lastSyncTime
+                  ? `${t('schwab.lastSync')}: ${new Date(lastSyncTime).toLocaleTimeString()}`
+                  : 'Link your Schwab account to auto-sync positions'}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Show account value when linked */}
+              {preferences.schwabLinked && preferences.defaultPortfolio.US > 0 && (
+                <div className="text-right">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Portfolio Value</p>
+                  <p className="text-lg font-bold text-gray-900 dark:text-white">
+                    ${preferences.defaultPortfolio.US.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleLinkSchwabAccount}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                >
+                  <Link2 size={16} />
+                  {preferences.schwabLinked ? 'Re-link' : t('schwab.linkAccount')}
+                </Button>
+                <Button
+                  onClick={handleSyncSchwabAccount}
+                  variant="outline"
+                  size="sm"
+                  disabled={isSyncing}
+                  className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                >
+                  <RefreshCw
+                    size={16}
+                    className={isSyncing ? 'animate-spin' : ''}
+                  />
+                  {t('schwab.syncAccount')}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -441,11 +461,21 @@ export function ActivePositionsPage({
           <div className="space-y-8">
             {/* Helper to render a table for a set of trades */}
             {(['US', 'CN'] as const).map((groupMarket) => {
-              const groupTrades = trades.filter(
-                (t) =>
-                  t.market === groupMarket ||
-                  (!t.market && groupMarket === 'US'),
-              )
+              // When Schwab is linked, US market shows ONLY Schwab positions (source of truth)
+              // Manual US trades are hidden when Schwab is the source of truth
+              const isSchwabSourceOfTruth = preferences.schwabLinked && groupMarket === 'US'
+              
+              const groupTrades = trades.filter((t) => {
+                const isMarketMatch = t.market === groupMarket || (!t.market && groupMarket === 'US')
+                if (!isMarketMatch) return false
+                
+                // For US market with Schwab linked: only show synced positions
+                if (isSchwabSourceOfTruth) {
+                  return t.syncedFromBroker === true
+                }
+                
+                return true
+              })
               if (groupTrades.length === 0) return null
 
               // Calculate risk for this market
@@ -472,6 +502,11 @@ export function ActivePositionsPage({
                         <span className="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
                           {groupTrades.length}
                         </span>
+                        {isSchwabSourceOfTruth && (
+                          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                            Synced from Schwab
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-6">
                         <Button
@@ -517,13 +552,10 @@ export function ActivePositionsPage({
                           {t('activePositions.col_symbol')}
                         </th>
                         <th className="px-4 py-3">
-                          {t('activePositions.col_entry')}
+                          {t('activePositions.col_cost')}
                         </th>
                         <th className="px-4 py-3">
                           {t('activePositions.col_stop')}
-                        </th>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_currentStop')}
                         </th>
                         <th className="px-4 py-3">
                           {t('activePositions.col_currentPrice')}
@@ -574,10 +606,19 @@ export function ActivePositionsPage({
                                     {t('activePositions.unsupported')}
                                   </span>
                                 )}
-                                {trade.syncedFromBroker && (
-                                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                                    {t('activePositions.syncedFromBroker')}
-                                  </span>
+                                {trade.syncedFromBroker && trade.hasWorkingStop === false && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-help">
+                                        <AlertTriangle size={12} />
+                                        No Stop Order
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>This position has no working stop order.</p>
+                                      <p className="text-xs text-gray-400">Using 5% fallback for risk calculation.</p>
+                                    </TooltipContent>
+                                  </Tooltip>
                                 )}
                               </div>
                             </td>
@@ -586,29 +627,7 @@ export function ActivePositionsPage({
                             </td>
                             <td className="px-4 py-3 text-rose-500">
                               {(() => {
-                                // Validate and display stop price
-                                const stop = trade.stop
-                                const isLong = trade.direction === 'long'
-                                const isValid = isLong
-                                  ? stop < trade.entry
-                                  : stop > trade.entry
-
-                                if (!isValid) {
-                                  // Show warning for invalid stop
-                                  return (
-                                    <span
-                                      className="text-yellow-600 dark:text-yellow-400"
-                                      title="Invalid stop price - needs correction"
-                                    >
-                                      {stop.toFixed(2)} ⚠️
-                                    </span>
-                                  )
-                                }
-                                return stop.toFixed(2)
-                              })()}
-                            </td>
-                            <td className="px-4 py-3">
-                              {(() => {
+                                // Show effective stop (the actual current stop)
                                 const effectiveStop = getEffectiveStop(trade)
                                 const isLong = trade.direction === 'long'
                                 const isValid = isLong
@@ -619,7 +638,7 @@ export function ActivePositionsPage({
                                   return (
                                     <span
                                       className="text-yellow-600 dark:text-yellow-400"
-                                      title="Invalid effective stop - needs correction"
+                                      title="Invalid stop price - needs correction"
                                     >
                                       {effectiveStop.toFixed(2)} ⚠️
                                     </span>
@@ -780,7 +799,7 @@ export function ActivePositionsPage({
                           </tr>
                           {expandedTradeId === trade.id && (
                             <tr>
-                              <td colSpan={8} className="p-0">
+                              <td colSpan={7} className="p-0">
                                 <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 space-y-4">
                                   {/* Visual Risk Line */}
                                   <div>

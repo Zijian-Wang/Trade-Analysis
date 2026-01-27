@@ -94,7 +94,11 @@ export async function syncSchwabAccount(userId: string): Promise<{
   success: boolean
   positions?: any[]
   portfolioRisk?: number
+  portfolioValue?: number
+  accountEquity?: number
+  cashBalance?: number
   syncedAt?: number
+  savedCount?: number
   error?: string
 }> {
   try {
