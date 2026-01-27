@@ -1,19 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { initializeApp, getApps, cert } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
-
-// Initialize Firebase Admin (only once)
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  })
-}
-
-const db = getFirestore()
+import { getDb } from '../_lib/firebase-admin'
 
 interface SchwabAccountData {
   securitiesAccount: {
@@ -92,7 +78,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { userId } = req.body
 
     if (!userId) {
-      return res.status(400).json({ error: 'Missing userId' })
+      return res.status(400).json({ success: false, error: 'Missing userId' })
+    }
+
+    // Initialize Firebase (lazy, with proper error handling)
+    let db
+    try {
+      db = getDb()
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : 'Firebase initialization failed',
+      })
     }
 
     // Get user's Schwab account data
@@ -126,7 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       )
 
       if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json()
+        const refreshData = (await refreshResponse.json()) as { accessToken: string }
         accessToken = refreshData.accessToken
       } else {
         return res
@@ -151,7 +148,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Failed to fetch positions' })
     }
 
-    const positionsData: SchwabAccountData = await positionsResponse.json()
+    const positionsData = (await positionsResponse.json()) as SchwabAccountData
     const positions: SchwabPosition[] =
       positionsData.securitiesAccount?.positions || []
 
@@ -179,7 +176,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )
 
     const orders: SchwabOrder[] = ordersResponse.ok
-      ? (await ordersResponse.json()) || []
+      ? ((await ordersResponse.json()) as SchwabOrder[]) || []
       : []
 
     // Filter stop orders

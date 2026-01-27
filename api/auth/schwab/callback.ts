@@ -1,19 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { initializeApp, getApps, cert } from 'firebase-admin/app'
-import { getFirestore } from 'firebase-admin/firestore'
-
-// Initialize Firebase Admin (only once)
-if (!getApps().length) {
-  initializeApp({
-    credential: cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    }),
-  })
-}
-
-const db = getFirestore()
+import type { Firestore } from 'firebase-admin/firestore'
+import { getDb } from '../../_lib/firebase-admin'
 
 function summarizeSchwabTokenError(raw: string): string {
   // Schwab typically returns JSON like:
@@ -85,6 +72,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
     }
 
+    // Initialize Firebase (lazy, with proper error handling)
+    let firestore: Firestore
+    try {
+      firestore = getDb()
+    } catch (e) {
+      return res.status(500).json({
+        success: false,
+        error: e instanceof Error ? e.message : 'Firebase initialization failed',
+      })
+    }
+
     // Exchange authorization code for tokens
     const tokenResponse = await fetch(
       'https://api.schwabapi.com/v1/oauth/token',
@@ -111,7 +109,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ success: false, error: summarizeSchwabTokenError(error) })
     }
 
-    const tokens = await tokenResponse.json()
+    const tokens = (await tokenResponse.json()) as {
+      access_token: string
+      refresh_token: string
+      expires_in: number
+    }
     const { access_token, refresh_token, expires_in } = tokens
 
     // Calculate expiration time (expires_in is in seconds)
@@ -133,11 +135,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ success: false, error: 'Failed to fetch account numbers' })
     }
 
-    const accounts = await accountsResponse.json()
+    const accounts = (await accountsResponse.json()) as Array<{
+      hashValue: string
+      accountNumber: string
+    }>
     const primaryAccount = accounts[0] // Use first account as primary
 
     // Store tokens securely in Firestore
-    const userRef = db.collection('users').doc(userId)
+    const userRef = firestore.collection('users').doc(userId)
     await userRef.set(
       {
         schwabAccounts: [
@@ -162,6 +167,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.error('OAuth callback error:', error)
     return res
       .status(500)
-      .json({ success: false, error: 'Internal server error' })
+      .json({
+        success: false,
+        error:
+          error instanceof Error
+            ? `Internal server error: ${error.message}`
+            : 'Internal server error',
+      })
   }
 }
