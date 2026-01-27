@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
-import { Settings, LogOut, History, ChevronDown } from 'lucide-react';
+import { Settings, LogOut, ChevronDown } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { AuthModal } from './AuthModal';
 import { toast } from 'sonner';
 
 interface UserMenuProps {
-  onNavigate?: (page: 'main' | 'history' | 'settings') => void;
+  onNavigate?: (page: 'main' | 'settings') => void;
 }
 
 export function UserMenu({ onNavigate }: UserMenuProps) {
@@ -90,14 +90,6 @@ export function UserMenu({ onNavigate }: UserMenuProps) {
 
             {/* Menu items */}
             <div className="py-1">
-              <DropdownMenu.Item
-                onSelect={() => onNavigate?.('history')}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700"
-              >
-                <History className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                {t('auth.tradeHistory')}
-              </DropdownMenu.Item>
-
               <DropdownMenu.Item
                 onSelect={() => onNavigate?.('settings')}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer focus:outline-none focus:bg-gray-100 dark:focus:bg-gray-700"

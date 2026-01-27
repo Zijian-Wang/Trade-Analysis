@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { TradeInputCard } from './components/TradeInputCard'
 import { PositionSize } from './components/PositionSize'
-import { TradeHistory } from './components/TradeHistory'
 import { SettingsModal } from './components/SettingsModal'
-import { TradeHistoryPage } from './pages/TradeHistoryPage'
 import { ActivePositionsPage } from './pages/ActivePositionsPage'
 import { PortfolioOverviewPage } from './pages/PortfolioOverviewPage'
 import { EmailVerificationBanner } from './components/EmailVerificationBanner'
@@ -25,7 +23,6 @@ import { useUserPreferences } from './context/UserPreferencesContext'
 import {
   saveTrade,
   getTrades,
-  deleteTrade,
   updateTrade,
   Trade,
 } from './services/tradeService'
@@ -41,9 +38,8 @@ export default function App() {
   const { preferences } = useUserPreferences()
 
   // Navigation
-  // Extended navigation state
   const [currentPage, setCurrentPage] = useState<
-    'main' | 'active' | 'portfolio' | 'history' | 'settings' | 'schwab-callback'
+    'main' | 'active' | 'portfolio' | 'settings' | 'schwab-callback'
   >('main')
   const [entryContext, setEntryContext] = useState<Trade | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -248,18 +244,6 @@ export default function App() {
     entryContext,
   ])
 
-  const handleDeleteTrade = useCallback(
-    async (id: string) => {
-      try {
-        await deleteTrade(user?.uid || null, id)
-        setLoggedTrades((prev) => prev.filter((t) => t.id !== id))
-      } catch (error) {
-        console.error('Failed to delete trade:', error)
-      }
-    },
-    [user],
-  )
-
   const handleTickerSymbolChange = (value: string) => {
     setTickerSymbol(value)
     // Only auto-switch market if not in single market mode
@@ -273,7 +257,6 @@ export default function App() {
       | 'main'
       | 'active'
       | 'portfolio'
-      | 'history'
       | 'settings'
       | 'schwab-callback',
   ) => {
@@ -306,26 +289,6 @@ export default function App() {
           theme={isDarkMode ? 'dark' : 'light'}
         />
         <SchwabCallbackPage onComplete={() => setCurrentPage('active')} />
-      </>
-    )
-  }
-
-  // Render trade history page
-  if (currentPage === 'history') {
-    return (
-      <>
-        <Toaster
-          position="top-center"
-          richColors
-          theme={isDarkMode ? 'dark' : 'light'}
-        />
-        <TradeHistoryPage
-          currencySymbol={currencySymbol}
-          loggedTrades={loggedTrades}
-          isDarkMode={isDarkMode}
-          onDeleteTrade={handleDeleteTrade}
-          onBack={() => setCurrentPage('main')}
-        />
       </>
     )
   }
@@ -427,16 +390,6 @@ export default function App() {
                   }`}
                 />
               </button>
-            </div>
-
-            {/* Trade History */}
-            <div className="mt-3 sm:mt-4 md:mt-6 flex-1 flex flex-col min-h-0 pb-6">
-              <TradeHistory
-                currencySymbol={currencySymbol}
-                loggedTrades={loggedTrades}
-                isDarkMode={isDarkMode}
-                onDeleteTrade={handleDeleteTrade}
-              />
             </div>
           </>
         )}

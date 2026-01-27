@@ -19,8 +19,8 @@ import { UserMenu } from "./UserMenu";
 interface HeaderProps {
   market: "US" | "CN";
   onMarketChange: (value: "US" | "CN") => void;
-  currentPage: 'main' | 'active' | 'portfolio' | 'history' | 'settings';
-  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'history' | 'settings') => void;
+  currentPage: 'main' | 'active' | 'portfolio' | 'settings';
+  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'settings') => void;
 }
 
 export function Header({ market, onMarketChange, currentPage, onNavigate }: HeaderProps) {

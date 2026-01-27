@@ -2,8 +2,8 @@ import { useLanguage } from "../context/LanguageContext";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface NavigationTabsProps {
-  currentPage: 'main' | 'active' | 'portfolio' | 'history' | 'settings';
-  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'history' | 'settings') => void;
+  currentPage: 'main' | 'active' | 'portfolio' | 'settings';
+  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'settings') => void;
 }
 
 export function NavigationTabs({ currentPage, onNavigate }: NavigationTabsProps) {
