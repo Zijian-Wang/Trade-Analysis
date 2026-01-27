@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getDb } from '../../_lib/firebase-admin'
+import { getDb } from '../../lib/firebase-admin'
 
 /**
  * Token refresh endpoint

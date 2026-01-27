@@ -1,6 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import type { Firestore } from 'firebase-admin/firestore'
-import { getDb } from '../../_lib/firebase-admin'
 
 function summarizeSchwabTokenError(raw: string): string {
   // Schwab typically returns JSON like:
@@ -39,11 +37,11 @@ function summarizeSchwabTokenError(raw: string): string {
  * Exchanges authorization code for access/refresh tokens
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
+  // Top-level error boundary to catch ANY error and return JSON
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ success: false, error: 'Method not allowed' })
+    }
     const { code, codeVerifier, userId, redirectUri } = req.body
 
     if (!code || !codeVerifier || !userId) {
@@ -73,10 +71,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Initialize Firebase (lazy, with proper error handling)
-    let firestore: Firestore
+    let firestore: import('firebase-admin/firestore').Firestore
     try {
+      const { getDb } = await import('../../lib/firebase-admin')
       firestore = getDb()
     } catch (e) {
+      console.error('Firebase init error:', e)
       return res.status(500).json({
         success: false,
         error: e instanceof Error ? e.message : 'Firebase initialization failed',
@@ -164,15 +164,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       accountHash: primaryAccount.hashValue,
     })
   } catch (error) {
+    // Global error handler - catches ANYTHING including import failures
     console.error('OAuth callback error:', error)
-    return res
-      .status(500)
-      .json({
+    try {
+      return res.status(500).json({
         success: false,
         error:
           error instanceof Error
-            ? `Internal server error: ${error.message}`
-            : 'Internal server error',
+            ? `Server error: ${error.message}`
+            : `Server error: ${String(error)}`,
       })
+    } catch {
+      // Last resort if even res.json fails
+      return res.status(500).end('Internal server error')
+    }
   }
 }
