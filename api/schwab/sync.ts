@@ -247,7 +247,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             entryPrice: position.averagePrice,
             shares: quantity,
             riskAmount,
-            contractStop: effectiveStop || undefined,
             createdAt: Date.now(),
           },
         ],

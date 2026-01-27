@@ -82,15 +82,24 @@ export function StopAdjustModal({
   const handleContractStopConfirm = async () => {
     if (!selectedContractId || !trade.id) return
 
-    const stopVal = contractStop ? parseFloat(contractStop) : undefined
-    if (stopVal !== undefined && (isNaN(stopVal) || stopVal <= 0)) {
+    const stopVal = contractStop ? parseFloat(contractStop) : null
+    if (stopVal !== null && (isNaN(stopVal) || stopVal <= 0)) {
       return
     }
 
     try {
-      const updatedContracts = trade.contracts.map((c) =>
-        c.id === selectedContractId ? { ...c, contractStop: stopVal } : c,
-      )
+      // If stopVal is null (empty input), remove contractStop; otherwise set it
+      const updatedContracts = trade.contracts.map((c) => {
+        if (c.id === selectedContractId) {
+          if (stopVal === null) {
+            // Remove contractStop (Firestore doesn't allow undefined)
+            const { contractStop: _, ...rest } = c
+            return rest
+          }
+          return { ...c, contractStop: stopVal }
+        }
+        return c
+      })
 
       await updateTrade(user?.uid || null, trade.id, {
         contracts: updatedContracts,
@@ -114,9 +123,14 @@ export function StopAdjustModal({
     if (!selectedContractId || !trade.id) return
 
     try {
-      const updatedContracts = trade.contracts.map((c) =>
-        c.id === selectedContractId ? { ...c, contractStop: undefined } : c,
-      )
+      // Remove contractStop by destructuring it out (Firestore doesn't allow undefined)
+      const updatedContracts = trade.contracts.map((c) => {
+        if (c.id === selectedContractId) {
+          const { contractStop: _, ...rest } = c
+          return rest
+        }
+        return c
+      })
 
       await updateTrade(user?.uid || null, trade.id, {
         contracts: updatedContracts,
