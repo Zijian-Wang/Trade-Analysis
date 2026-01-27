@@ -48,7 +48,6 @@
     "noStop": "No Stop",
     "syncedFromBroker": "Synced from Schwab",
     "actions": {
-      "chart": "View Risk Visualization",
       "adjustStop": "Adjust Stop",
       "addToPosition": "Add to Position",
       "close": "Close Position",

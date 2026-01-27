@@ -6,204 +6,157 @@
 Trade Risk Analysis is a risk-first trading tool designed to help traders define, monitor, and manage risk at both the trade and portfolio level.
 
 The system emphasizes:
-- structural stops
-- controlled exposure
-- portfolio-level awareness
-- visual clarity over signal density
+- Risk-based position sizing
+- Portfolio-level risk awareness
+- Broker integration for real-time position sync
+- Multi-market support (US & China)
 
 This product is not a signal generator or broker replacement.
 
 ---
 
-## 2. Core Principles
+## 2. Core Features
 
-1. Risk-first, P/L-second  
-2. Structure defines validity  
-3. Trades are logged as Active with follow-up actions (add to position, close)  
-4. Localization-first (CN / EN)  
-5. Core logic must remain UI-agnostic  
+### 2.1 Entry Planning (Position Calculator)
 
----
+The Entry tab provides a position sizing calculator based on risk parameters:
 
-## 3. Trade Lifecycle
-
-### 3.1 Entry Setup (Log Active Trade)
-
-Users log trades directly as **Active** positions. Entry Setup calculates position size and risk based on:
-- Account size
-- Risk %
+**Inputs:**
+- Portfolio capital
+- Risk % per trade
 - Entry price
-- Structure stop price
+- Stop loss price
+- Target price (optional)
+- Direction (Long/Short)
+- Setup/Sentiment tag
 
-**Outputs**
-- Position size
-- Initial risk ($)
-- Initial R
+**Outputs:**
+- Position size (shares/lots)
+- Risk amount ($)
+- Risk per share
+- R/R ratio (if target provided)
 
-**Notes**
-- Trades are created with `status: 'ACTIVE'` by default
-- Initial parameters (entry, structure stop) must not be mutated after creation
-- Entry Setup must be reusable in both standalone and contextual modes (adding to existing position)
-
----
-
-### 3.2 Active (Position Management)
-
-Represents all live positions with mutable risk. All logged trades start as Active.
-
-**Key Capabilities**
-- Adjust stop (structure or contract-level override)
-- Add to position (new risk contract via Entry Setup in context mode)
-- Partial or full close
+**Market Support:**
+- US Market: Standard share sizing
+- CN Market: 100-share lot sizing
 
 ---
 
-### 3.3 Closed
+### 2.2 Active Positions Management
 
-Represents completed trades.
-Persistence is required but analytics are out of MVP scope.
+Displays and manages all active positions grouped by market.
 
----
+**Features:**
+- Position list with key metrics (Symbol, Cost, Stop, Price, Shares, Risk)
+- Total portfolio risk per market ($ and %)
+- Actions: Adjust stop, Add to position, Close position, Edit shares
+- Manual position entry for non-synced positions
 
-## 4. Stop Model
-
-### Structure Stop
-- Defined at first entry
-- Represents thesis invalidation
-- Default stop for all contracts
-
-### Contract Stop (Optional Override)
-- Disabled by default
-- Explicit user action required
-- Applies only to the specific add-on contract
-
-**Effective Stop Rule**
-Effective Stop =
-Contract Stop (if exists)
-else Structure Stop
+**Schwab Integration (US Market):**
+- When linked, Schwab becomes the source of truth for US positions
+- Portfolio capital synced from account liquidation value
+- Positions show average cost from Schwab
+- Stop prices from working stop/stop-limit orders
+- Positions without stop orders flagged with warning
 
 ---
 
-## 5. Active Position UI
+### 2.3 Broker Integration (Schwab)
 
-### 5.1 Position List (Data View)
+**Authentication:**
+- OAuth 2.0 flow with PKCE
+- Secure token storage in Firebase
 
-Each active position displays:
-- Symbol
-- Entry price
-- Structure stop
-- Current stop
-- Current price
-- Risk remaining ($ / %)
-- Trade state badge
+**Sync Capabilities:**
+- Account liquidation value → Portfolio capital
+- Active positions with average cost basis
+- Working stop orders (stop market, stop limit)
+- Auto-sync on page load and every 5 minutes
 
-Inline actions:
-- Move stop
-- Add to position
-- Close position
-
----
-
-### 5.2 Visual Risk Line
-
-Each position includes a horizontal visual indicator:
-
-| Stop | Entry | Current | Target (optional) |
-
-Purpose:
-- Immediate risk comprehension
-- Non-emotional visual encoding
+**Data Model:**
+- `syncedFromBroker: true` flag for broker positions
+- `hasWorkingStop` flag to identify unprotected positions
+- Manual US trades hidden when Schwab is linked
 
 ---
 
-### 5.3 Chart View (Deferred to Phase 5)
+### 2.4 Portfolio Overview (Work in Progress)
 
-Chart view has been deferred to a later phase due to price data mismatch issues. The current implementation focuses on the Visual Risk Line for risk comprehension.
-
-**Planned Features (Phase 5):**
-- Daily candlesticks with historical data
-- Horizontal lines:
-  - Entry
-  - Structure stop
-  - Contract stop (if overridden)
-  - Target (optional)
-- Charts are read-only and assistive
+- Risk allocation visualization
+- Portfolio summary statistics
 
 ---
 
-## 6. Portfolio Risk Summary
+## 3. User System
 
-Displayed prominently in Active view:
-- Total portfolio risk ($)
-- Risk % of account
-- Number of active positions
+### 3.1 Authentication
+
+- Firebase Authentication
+- Email/password sign-up with email verification
+- Google OAuth sign-in
+- Guest mode with localStorage persistence
+
+### 3.2 User Preferences
+
+Stored per-user in Firebase:
+- Default portfolio capital (US/CN)
+- Active markets
+- Single market mode toggle
+- Language follows market setting
+- Schwab linked status
 
 ---
 
-## 7. Entry Setup Reuse (Context Mode)
+## 4. Localization
 
-When Entry Setup is triggered from Active Management:
-- Parent trade context is passed
-- Display:
-  - Freed risk
-  - Remaining portfolio risk budget
-- Risk validation is enforced
-- Parent trade is not mutated
-
----
-
-## 8. Localization
-
-All features must support:
-- Chinese (CN)
+Full support for:
 - English (EN)
+- Chinese (CN)
 
-Requirements:
-- No hardcoded strings
-- Localized labels, tooltips, warnings
-- Locale-aware number formatting
+All UI text externalized to locale files. Language can automatically follow market selection.
 
 ---
 
-## 9. Component Guidelines
+## 5. Data Persistence
 
-Core logic must be separated from UI.
+### Logged-in Users
+- Trades stored in Firebase Firestore
+- Preferences synced across devices
+- Schwab tokens stored securely
 
-Recommended conceptual components:
-- Risk calculation engine
-- Entry Setup form
-- Active position manager
-- Visual risk indicators
-- Chart renderer
+### Guest Users
+- Trades stored in localStorage
+- Preferences stored in localStorage
+- Data migrated on sign-up
 
 ---
 
-## 10. Out of Scope (MVP)
+## 6. Technical Stack
+
+- **Frontend:** React + TypeScript + Vite
+- **Styling:** Tailwind CSS + Radix UI
+- **Backend:** Vercel Serverless Functions
+- **Database:** Firebase Firestore
+- **Auth:** Firebase Authentication
+- **Broker API:** Schwab Individual Trader API
+
+---
+
+## 7. Out of Scope
 
 - Signal generation
 - Backtesting
 - Strategy optimization
 - Alerts / automation
+- Real-time price streaming
+- Options / futures support
+- Trade history analytics
 
 ---
 
-## 11. Broker Integration (Phase 2)
+## 8. Future Considerations
 
-Broker integration for auto-syncing active positions and stop orders is planned as a Phase 2 feature. See `doc/schwab-api-research.md` for implementation plan.
-
-**Key Requirements:**
-- OAuth 2.0 authentication flow (backend proxy required)
-- Auto-sync active positions and working stop orders
-- Map broker data to Trade Analysis models
-- Handle unsupported instrument types (multi-leg options, complex derivatives) with clear labeling
-- Generate current account risk status from synced data
-
----
-
-## 12. Current Status
-
-- Phase 1 logic implemented
-- Data persistence enabled (Firebase + LocalStorage)
-- Active position management UI complete
-- Portfolio overview implemented
-- Future work: Broker integration, enhanced visualization, contract stop override UI
+- Additional broker integrations
+- CN market broker support
+- Trade journaling and analytics
+- Mobile-optimized experience

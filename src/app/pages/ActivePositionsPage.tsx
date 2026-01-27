@@ -16,27 +16,20 @@ import { StopAdjustModal } from '../components/StopAdjustModal'
 import { ManualPositionModal } from '../components/ManualPositionModal'
 import { EditSharesModal } from '../components/EditSharesModal'
 import {
-  ChevronDown,
-  ChevronUp,
-  BarChart2,
   ShieldAlert,
   PlusCircle,
   XCircle,
   AlertTriangle,
   Link2,
   RefreshCw,
-  Pencil,
   Plus,
   SquarePen,
-  FilePen,
-  Edit2,
 } from 'lucide-react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { toast } from 'sonner'
 import { useLanguage } from '../context/LanguageContext'
 import { getSchwabAuthUrl, syncSchwabAccount } from '../services/schwabAuth'
 import { Button } from '../components/ui/button'
-import { VisualRiskLine } from '../components/VisualRiskLine'
 import {
   Tooltip,
   TooltipContent,
@@ -57,7 +50,6 @@ export function ActivePositionsPage({
   const { preferences } = useUserPreferences()
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
-  const [expandedTradeId, setExpandedTradeId] = useState<string | null>(null)
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [stopModalOpen, setStopModalOpen] = useState(false)
 
@@ -573,23 +565,12 @@ export function ActivePositionsPage({
                     </thead>
                     <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                       {groupTrades.map((trade) => (
-                        <>
                           <tr
                             key={trade.id}
-                            className={`hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${expandedTradeId === trade.id ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
-                            onClick={() =>
-                              setExpandedTradeId(
-                                expandedTradeId === trade.id ? null : trade.id!,
-                              )
-                            }
+                            className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                           >
                             <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
                               <div className="flex items-center gap-2">
-                                {expandedTradeId === trade.id ? (
-                                  <ChevronUp size={16} />
-                                ) : (
-                                  <ChevronDown size={16} />
-                                )}
                                 <div className="flex flex-col">
                                   <span>{trade.symbol}</span>
                                   {stockNames.get(trade.symbol) &&
@@ -713,29 +694,6 @@ export function ActivePositionsPage({
                                     className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
                                     onClick={(e) => {
                                       e.stopPropagation()
-                                      setExpandedTradeId(
-                                        expandedTradeId === trade.id
-                                          ? null
-                                          : trade.id!,
-                                      )
-                                    }}
-                                  >
-                                    <BarChart2
-                                      size={18}
-                                      className="text-gray-500"
-                                    />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{t('activePositions.actions.chart')}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
                                       setSelectedTrade(trade)
                                       setStopModalOpen(true)
                                     }}
@@ -797,25 +755,6 @@ export function ActivePositionsPage({
                               </Tooltip>
                             </td>
                           </tr>
-                          {expandedTradeId === trade.id && (
-                            <tr>
-                              <td colSpan={7} className="p-0">
-                                <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 p-4 space-y-4">
-                                  {/* Visual Risk Line */}
-                                  <div>
-                                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                                      Risk Visualization
-                                    </h4>
-                                    <VisualRiskLine
-                                      trade={trade}
-                                      className="py-2"
-                                    />
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </>
                       ))}
                     </tbody>
                   </table>

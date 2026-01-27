@@ -48,7 +48,6 @@
     "noStop": "无止损",
     "syncedFromBroker": "来自 Schwab",
     "actions": {
-      "chart": "查看风险可视化",
       "adjustStop": "调整止损",
       "addToPosition": "加仓",
       "close": "平仓",
