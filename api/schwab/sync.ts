@@ -209,10 +209,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             (direction === 'long' ? 'SELL' : 'BUY'),
       )
 
-      // Determine if supported
+      // Determine if supported (EQUITY and ETF are both tradeable like stocks)
       const assetType = position.instrument.assetType
-      const isSupported = assetType === 'EQUITY'
-      const instrumentType = isSupported ? 'EQUITY' : 'UNSUPPORTED'
+      const isSupported = assetType === 'EQUITY' || assetType === 'ETF'
+      const instrumentType = isSupported ? assetType : 'UNSUPPORTED'
 
       // Calculate effective stop
       const effectiveStop = matchingStopOrder?.stopPrice || null

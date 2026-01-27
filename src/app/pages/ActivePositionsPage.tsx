@@ -15,15 +15,20 @@ import { getStockNames } from '../services/stockNameService'
 import { StopAdjustModal } from '../components/StopAdjustModal'
 import { ManualPositionModal } from '../components/ManualPositionModal'
 import { EditSharesModal } from '../components/EditSharesModal'
+import { PriceRangeBar } from '../components/PriceRangeBar'
 import {
   ShieldAlert,
   PlusCircle,
   XCircle,
-  AlertTriangle,
+  Info,
+  Ban,
   Link2,
   RefreshCw,
   Plus,
   SquarePen,
+  CheckCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { toast } from 'sonner'
@@ -59,7 +64,9 @@ export function ActivePositionsPage({
 
   // Manual Position Modal State
   const [manualPositionModalOpen, setManualPositionModalOpen] = useState(false)
-  const [manualPositionMarket, setManualPositionMarket] = useState<'US' | 'CN'>('US')
+  const [manualPositionMarket, setManualPositionMarket] = useState<'US' | 'CN'>(
+    'US',
+  )
 
   // Edit Shares Modal State
   const [editSharesModalOpen, setEditSharesModalOpen] = useState(false)
@@ -69,6 +76,10 @@ export function ActivePositionsPage({
   const [isSyncing, setIsSyncing] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null)
   const [stockNames, setStockNames] = useState<Map<string, string>>(new Map())
+
+  // Privacy mode state
+  const [privacyMode, setPrivacyMode] = useState(false)
+  const maskedValue = '••••••'
 
   const fetchTrades = async () => {
     try {
@@ -311,7 +322,6 @@ export function ActivePositionsPage({
     }
   }
 
-
   // Helper to calculate effective stop for a trade
   const getEffectiveStop = (trade: Trade): number => {
     // If trade has contracts, calculate weighted effective stop
@@ -392,12 +402,15 @@ export function ActivePositionsPage({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-medium text-gray-900 dark:text-white">
-                  {preferences.schwabLinked ? 'Schwab Account Connected' : t('schwab.linkAccount')}
+                  {preferences.schwabLinked
+                    ? 'Schwab Account Connected'
+                    : t('schwab.linkAccount')}
                 </h3>
                 {preferences.schwabLinked && (
-                  <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
-                    Source of Truth
-                  </span>
+                  <CheckCircle
+                    size={16}
+                    className="text-green-600 dark:text-green-400 fill-green-100 dark:fill-green-900/50"
+                  />
                 )}
               </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -408,38 +421,41 @@ export function ActivePositionsPage({
             </div>
             <div className="flex items-center gap-4">
               {/* Show account value when linked */}
-              {preferences.schwabLinked && preferences.defaultPortfolio.US > 0 && (
-                <div className="text-right">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">Portfolio Value</p>
-                  <p className="text-lg font-bold text-gray-900 dark:text-white">
-                    ${preferences.defaultPortfolio.US.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </p>
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleLinkSchwabAccount}
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
-                >
-                  <Link2 size={16} />
-                  {preferences.schwabLinked ? 'Re-link' : t('schwab.linkAccount')}
-                </Button>
-                <Button
-                  onClick={handleSyncSchwabAccount}
-                  variant="outline"
-                  size="sm"
-                  disabled={isSyncing}
-                  className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
-                >
-                  <RefreshCw
-                    size={16}
-                    className={isSyncing ? 'animate-spin' : ''}
-                  />
-                  {t('schwab.syncAccount')}
-                </Button>
-              </div>
+              {preferences.schwabLinked &&
+                preferences.defaultPortfolio.US > 0 && (
+                  <div className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => setPrivacyMode(!privacyMode)}
+                        className="p-0.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+                        title={privacyMode ? 'Show values' : 'Hide values'}
+                      >
+                        {privacyMode ? (
+                          <EyeOff size={16} className="text-gray-400" />
+                        ) : (
+                          <Eye size={16} className="text-gray-400" />
+                        )}
+                      </button>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Portfolio Value
+                      </p>
+                    </div>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {privacyMode
+                        ? `$${maskedValue}`
+                        : `$${preferences.defaultPortfolio.US.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                    </p>
+                  </div>
+                )}
+              <Button
+                onClick={handleLinkSchwabAccount}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+              >
+                <Link2 size={16} />
+                {preferences.schwabLinked ? 'Re-link' : t('schwab.linkAccount')}
+              </Button>
             </div>
           </div>
         </div>
@@ -455,29 +471,32 @@ export function ActivePositionsPage({
             {(['US', 'CN'] as const).map((groupMarket) => {
               // When Schwab is linked, US market shows ONLY Schwab positions (source of truth)
               // Manual US trades are hidden when Schwab is the source of truth
-              const isSchwabSourceOfTruth = preferences.schwabLinked && groupMarket === 'US'
-              
+              const isSchwabSourceOfTruth =
+                preferences.schwabLinked && groupMarket === 'US'
+
               const groupTrades = trades.filter((t) => {
-                const isMarketMatch = t.market === groupMarket || (!t.market && groupMarket === 'US')
+                const isMarketMatch =
+                  t.market === groupMarket ||
+                  (!t.market && groupMarket === 'US')
                 if (!isMarketMatch) return false
-                
+
                 // For US market with Schwab linked: only show synced positions
                 if (isSchwabSourceOfTruth) {
                   return t.syncedFromBroker === true
                 }
-                
+
                 return true
               })
               if (groupTrades.length === 0) return null
 
               // Calculate risk for this market
               const marketRisk = calculatePortfolioRisk(groupTrades)
-              const marketCapital = groupMarket === 'US' 
-                ? preferences.defaultPortfolio.US 
-                : preferences.defaultPortfolio.CN
-              const marketRiskPercent = marketCapital > 0 
-                ? (marketRisk / marketCapital) * 100 
-                : 0
+              const marketCapital =
+                groupMarket === 'US'
+                  ? preferences.defaultPortfolio.US
+                  : preferences.defaultPortfolio.CN
+              const marketRiskPercent =
+                marketCapital > 0 ? (marketRisk / marketCapital) * 100 : 0
               const marketCurrencySymbol = groupMarket === 'US' ? '$' : '¥'
 
               return (
@@ -489,275 +508,560 @@ export function ActivePositionsPage({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-medium">
                         <span>
-                          {groupMarket === 'US' ? '🇺🇸 US Market' : '🇨🇳 CN Market'}
+                          {groupMarket === 'US'
+                            ? '🇺🇸 US Market'
+                            : '🇨🇳 CN Market'}
                         </span>
                         <span className="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
                           {groupTrades.length}
                         </span>
                         {isSchwabSourceOfTruth && (
-                          <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full">
-                            Synced from Schwab
+                          <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-0.5 rounded-full">
+                            Linked
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-6">
-                        <Button
-                          onClick={() => {
-                            setManualPositionMarket(groupMarket as 'US' | 'CN')
-                            setManualPositionModalOpen(true)
-                          }}
-                          variant="outline"
-                          size="sm"
-                          className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
-                        >
-                          <Plus size={16} />
-                          {t('activePositions.actions.addManualPosition')}
-                        </Button>
+                        {isSchwabSourceOfTruth ? (
+                          <Button
+                            onClick={handleSyncSchwabAccount}
+                            variant="outline"
+                            size="sm"
+                            disabled={isSyncing}
+                            className="dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                          >
+                            <RefreshCw
+                              size={16}
+                              className={isSyncing ? 'animate-spin' : ''}
+                            />
+                          </Button>
+                        ) : (
+                          <Button
+                            onClick={() => {
+                              setManualPositionMarket(
+                                groupMarket as 'US' | 'CN',
+                              )
+                              setManualPositionModalOpen(true)
+                            }}
+                            variant="outline"
+                            size="sm"
+                            className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                          >
+                            <Plus size={16} />
+                            {t('activePositions.actions.addManualPosition')}
+                          </Button>
+                        )}
                         <div>
                           <h2 className="text-xs font-medium text-gray-500 dark:text-gray-400">
                             {t('activePositions.totalRisk')}
                           </h2>
                           <p className="text-lg font-bold text-gray-900 dark:text-white mt-0.5">
-                            {marketCurrencySymbol}
-                            {marketRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            {privacyMode
+                              ? `${marketCurrencySymbol}${maskedValue}`
+                              : `${marketCurrencySymbol}${marketRisk.toLocaleString('en-US', { minimumFractionDigits: 2 })}`}
                           </p>
                         </div>
                         <div>
                           <h2 className="text-xs font-medium text-gray-500 dark:text-gray-400">
                             {t('activePositions.riskPercent')}
                           </h2>
-                          <p className={`text-lg font-bold mt-0.5 ${
-                            marketRiskPercent < 1 
-                              ? 'text-green-600 dark:text-green-400' 
-                              : 'text-red-600 dark:text-red-400'
-                          }`}>
+                          <p
+                            className={`text-lg font-bold mt-0.5 ${
+                              marketRiskPercent < 1
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400'
+                            }`}
+                          >
                             {marketRiskPercent.toFixed(2)}%
                           </p>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <table className="w-full text-sm text-left">
-                    <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
-                      <tr>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_symbol')}
-                        </th>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_cost')}
-                        </th>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_stop')}
-                        </th>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_currentPrice')}
-                        </th>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_shares')}
-                        </th>
-                        <th className="px-4 py-3">
-                          {t('activePositions.col_riskRemaining')}
-                        </th>
-                        <th className="px-4 py-3 text-right">
-                          {t('activePositions.col_actions')}
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {groupTrades.map((trade) => (
-                          <tr
-                            key={trade.id}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                          >
-                            <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">
-                              <div className="flex items-center gap-2">
-                                <div className="flex flex-col">
-                                  <span>{trade.symbol}</span>
-                                  {stockNames.get(trade.symbol) &&
-                                    stockNames.get(trade.symbol) !==
-                                      trade.symbol && (
-                                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                                        {stockNames.get(trade.symbol)}
-                                      </span>
-                                    )}
-                                </div>
-                                {trade.isSupported === false && (
-                                  <span className="text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                    <AlertTriangle size={12} />
-                                    {t('activePositions.unsupported')}
-                                  </span>
-                                )}
-                                {trade.syncedFromBroker && trade.hasWorkingStop === false && (
+                  {/* Scrollable table wrapper with sticky columns */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left min-w-[800px]">
+                      <thead className="bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 font-medium border-b border-gray-200 dark:border-gray-700">
+                        <tr>
+                          <th className="px-4 py-3 sticky left-0 bg-gray-50 dark:bg-gray-900 z-10 min-w-[140px] max-w-[180px] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-gray-200 dark:after:bg-gray-700">
+                            {t('activePositions.col_symbol')}
+                          </th>
+                          <th className="px-4 py-3 whitespace-nowrap">
+                            {t('activePositions.col_cost')}
+                          </th>
+                          <th className="px-4 py-3 whitespace-nowrap">
+                            {t('activePositions.col_stop')}
+                          </th>
+                          <th className="px-4 py-3 whitespace-nowrap">
+                            {t('activePositions.col_currentPrice')}
+                          </th>
+                          <th className="px-4 py-3 min-w-[120px]">
+                            Price Range
+                          </th>
+                          <th className="px-4 py-3 whitespace-nowrap">
+                            {t('activePositions.col_shares')}
+                          </th>
+                          <th className="px-4 py-3 whitespace-nowrap">
+                            {t('activePositions.col_riskRemaining')}
+                          </th>
+                          <th className="px-1 py-3 text-center sticky right-0 bg-gray-50 dark:bg-gray-900 z-10 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-gray-200 dark:before:bg-gray-700 w-12" />
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                        {groupTrades.map((trade) => {
+                          // Parse option symbols (OCC format: SYMBOL + YYMMDD + C/P + Strike)
+                          // Example: "GLD   260220P00450000" -> { underlying: "GLD", expiry: "2026/02/20", type: "PUT", strike: 450, isWeekly: true }
+                          const parseOptionSymbol = (symbol: string) => {
+                            // Option symbols are typically 21 chars: 6 char symbol (padded) + 6 digit date + 1 char type + 8 digit strike
+                            const optionMatch = symbol.match(
+                              /^([A-Z]+)\s*(\d{6})([CP])(\d{8})$/,
+                            )
+                            if (optionMatch) {
+                              const [
+                                ,
+                                underlying,
+                                dateStr,
+                                optionType,
+                                strikeStr,
+                              ] = optionMatch
+                              const year = '20' + dateStr.slice(0, 2)
+                              const month = dateStr.slice(2, 4)
+                              const day = dateStr.slice(4, 6)
+                              const strike = parseInt(strikeStr) / 1000 // Strike is in 1/1000 dollars
+
+                              // Check if it's a weekly option (not the 3rd Friday of the month)
+                              const expiryDate = new Date(
+                                parseInt(year),
+                                parseInt(month) - 1,
+                                parseInt(day),
+                              )
+                              const dayOfWeek = expiryDate.getDay()
+                              const dayOfMonth = expiryDate.getDate()
+                              // 3rd Friday is between 15th-21st and is a Friday (day 5)
+                              const isThirdFriday =
+                                dayOfWeek === 5 &&
+                                dayOfMonth >= 15 &&
+                                dayOfMonth <= 21
+                              const isWeekly = !isThirdFriday
+
+                              return {
+                                isOption: true,
+                                underlying: underlying.trim(),
+                                expiry: `${year}/${month}/${day}`,
+                                type: optionType === 'C' ? 'CALL' : 'PUT',
+                                strike,
+                                isWeekly,
+                              }
+                            }
+                            return {
+                              isOption: false,
+                              underlying: symbol,
+                              isWeekly: false,
+                            }
+                          }
+
+                          const symbolInfo = parseOptionSymbol(trade.symbol)
+
+                          // Render warning icons (reusable for both option and stock)
+                          const renderWarningIcons = () => (
+                            <>
+                              {trade.isSupported === false && (
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-yellow-600 dark:text-yellow-400 cursor-help flex-shrink-0 inline-flex items-center">
+                                      <Info size={12} />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="font-medium">
+                                      {t('activePositions.unsupported')}
+                                    </p>
+                                    <p className="text-xs text-gray-400">
+                                      This asset type is not fully supported for
+                                      risk calculation.
+                                    </p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              )}
+                              {trade.syncedFromBroker &&
+                                trade.hasWorkingStop === false && (
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 px-2 py-0.5 rounded-full flex items-center gap-1 cursor-help">
-                                        <AlertTriangle size={12} />
-                                        No Stop Order
+                                      <span className="text-red-600 dark:text-red-400 cursor-help flex-shrink-0 inline-flex items-center">
+                                        <Ban size={12} />
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
-                                      <p>This position has no working stop order.</p>
-                                      <p className="text-xs text-gray-400">Using 5% fallback for risk calculation.</p>
+                                      <p className="font-medium text-red-600 dark:text-red-400">
+                                        No Stop Order
+                                      </p>
+                                      <p className="text-xs text-gray-400">
+                                        This position has no working stop order.
+                                        Using 5% fallback for risk calculation.
+                                      </p>
                                     </TooltipContent>
                                   </Tooltip>
                                 )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              {trade.entry.toFixed(2)}
-                            </td>
-                            <td className="px-4 py-3 text-rose-500">
-                              {(() => {
-                                // Show effective stop (the actual current stop)
-                                const effectiveStop = getEffectiveStop(trade)
-                                const isLong = trade.direction === 'long'
-                                const isValid = isLong
-                                  ? effectiveStop < trade.entry
-                                  : effectiveStop > trade.entry
+                            </>
+                          )
 
-                                if (!isValid) {
-                                  return (
-                                    <span
-                                      className="text-yellow-600 dark:text-yellow-400"
-                                      title="Invalid stop price - needs correction"
-                                    >
-                                      {effectiveStop.toFixed(2)} ⚠️
+                          return (
+                            <tr
+                              key={trade.id}
+                              className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                            >
+                              <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white sticky left-0 bg-white dark:bg-gray-800 z-10 max-w-[180px] after:absolute after:right-0 after:top-0 after:bottom-0 after:w-px after:bg-gray-200 dark:after:bg-gray-700">
+                                <div className="flex flex-col min-w-0">
+                                  {symbolInfo.isOption ? (
+                                    <>
+                                      {/* Large screens: 2 lines */}
+                                      <div className="hidden lg:flex flex-col">
+                                        <div className="flex items-center gap-1 leading-tight">
+                                          <span className="font-semibold">{symbolInfo.underlying}</span>
+                                          {renderWarningIcons()}
+                                        </div>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                                          {symbolInfo.expiry} ${symbolInfo.strike} {trade.direction === 'long' ? 'Long' : 'Short'} {symbolInfo.type}{symbolInfo.isWeekly && ' (Wkly)'}
+                                        </span>
+                                      </div>
+                                      {/* Small/tablet screens: 3 lines */}
+                                      <div className="lg:hidden flex flex-col">
+                                        <div className="flex items-center gap-1 leading-tight">
+                                          <span className="font-semibold">{symbolInfo.underlying}</span>
+                                          {renderWarningIcons()}
+                                        </div>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
+                                          {trade.direction === 'long' ? 'Long' : 'Short'} {symbolInfo.type}
+                                        </span>
+                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-normal">
+                                          {symbolInfo.expiry} ${symbolInfo.strike}{symbolInfo.isWeekly && ' (Wkly)'}
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div className="flex items-center gap-1 leading-tight">
+                                        <span className="truncate">
+                                          {trade.symbol}
+                                        </span>
+                                        {renderWarningIcons()}
+                                      </div>
+                                      {stockNames.get(trade.symbol) &&
+                                        stockNames.get(trade.symbol) !==
+                                          trade.symbol && (
+                                          <span className="text-xs text-gray-500 dark:text-gray-400 font-normal truncate">
+                                            {stockNames.get(trade.symbol)}
+                                          </span>
+                                        )}
+                                    </>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {trade.entry.toFixed(2)}
+                              </td>
+                              <td className="px-4 py-3">
+                                {(() => {
+                                  // Show effective stop (the actual current stop)
+                                  const effectiveStop = getEffectiveStop(trade)
+                                  const isLong = trade.direction === 'long'
+
+                                  // Check if profit is locked in (stop moved above cost basis for longs, below for shorts)
+                                  // This is a trailing stop scenario - it's GOOD, not invalid
+                                  const isProfitLocked = isLong
+                                    ? effectiveStop > trade.entry
+                                    : effectiveStop < trade.entry
+
+                                  // Traditional valid stop: below entry for long, above entry for short
+                                  const isNormalValidStop = isLong
+                                    ? effectiveStop < trade.entry
+                                    : effectiveStop > trade.entry
+
+                                  // A stop is valid if it's either a normal stop OR a profit-locked trailing stop
+                                  const isValid =
+                                    isNormalValidStop || isProfitLocked
+
+                                  // Calculate risk percentage for this trade
+                                  const riskRemaining = getRiskRemaining(
+                                    trade,
+                                    marketCapital,
+                                  )
+                                  const riskPercent = riskRemaining.percent
+
+                                  // Determine stop color based on conditions
+                                  let stopColorClass =
+                                    'text-gray-900 dark:text-white' // Normal
+                                  let showWarningTooltip = false
+
+                                  if (!isValid) {
+                                    // Invalid stop (exactly at entry?) - yellow warning
+                                    stopColorClass =
+                                      'text-yellow-600 dark:text-yellow-400'
+                                  } else if (isProfitLocked) {
+                                    // Profit locked in via trailing stop - green
+                                    stopColorClass =
+                                      'text-emerald-600 dark:text-emerald-400'
+                                  } else if (riskPercent > 1) {
+                                    // High risk (>1%) - warning color
+                                    stopColorClass =
+                                      'text-amber-600 dark:text-amber-400'
+                                    showWarningTooltip = true
+                                  }
+                                  // If risk <= 1%, keep normal color (default)
+
+                                  if (!isValid) {
+                                    return (
+                                      <span
+                                        className={stopColorClass}
+                                        title="Invalid stop price - needs correction"
+                                      >
+                                        {effectiveStop.toFixed(2)} ⚠️
+                                      </span>
+                                    )
+                                  }
+
+                                  const stopContent = (
+                                    <span className={stopColorClass}>
+                                      {effectiveStop.toFixed(2)}
+                                      {hasContractStopOverride(trade) && (
+                                        <span
+                                          className="text-xs text-blue-600 dark:text-blue-400 ml-1"
+                                          title={t('stopAdjust.contractStop')}
+                                        >
+                                          *
+                                        </span>
+                                      )}
+                                      {isProfitLocked && (
+                                        <span className="ml-1 text-xs">🔒</span>
+                                      )}
                                     </span>
                                   )
-                                }
-                                return (
-                                  <>
-                                    {effectiveStop.toFixed(2)}
-                                    {hasContractStopOverride(trade) && (
-                                      <span
-                                        className="text-xs text-blue-600 dark:text-blue-400 ml-1"
-                                        title={t('stopAdjust.contractStop')}
-                                      >
-                                        *
-                                      </span>
-                                    )}
-                                  </>
-                                )
-                              })()}
-                            </td>
-                            <td className="px-4 py-3">
-                              {trade.currentPrice
-                                ? trade.currentPrice.toFixed(2)
-                                : '—'}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <span>{trade.positionSize}</span>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <button
-                                      className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        setTradeToEditShares(trade)
-                                        setEditSharesModalOpen(true)
-                                      }}
-                                    >
-                                      {/* Icon options: SquarePen, FilePen, Edit2, or Pencil */}
-                                      <SquarePen
-                                        size={14}
-                                        className="text-gray-500"
-                                      />
-                                    </button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{t('activePositions.actions.editShares')}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              {(() => {
-                                const riskRemaining = getRiskRemaining(trade, marketCapital)
-                                return (
-                                  <div className="flex flex-col">
-                                    <span className="font-medium">
-                                      {marketCurrencySymbol}
-                                      {riskRemaining.amount.toFixed(2)}
-                                    </span>
-                                    <span className="text-xs text-gray-500">
-                                      {riskRemaining.percent.toFixed(2)}%
-                                    </span>
+
+                                  if (showWarningTooltip) {
+                                    return (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <span
+                                            className={`${stopColorClass} cursor-help`}
+                                          >
+                                            {effectiveStop.toFixed(2)}
+                                            {hasContractStopOverride(trade) && (
+                                              <span className="text-xs text-blue-600 dark:text-blue-400 ml-1">
+                                                *
+                                              </span>
+                                            )}
+                                          </span>
+                                        </TooltipTrigger>
+                                        <TooltipContent className="max-w-xs">
+                                          <p className="font-medium text-amber-600 dark:text-amber-400">
+                                            High Risk Position
+                                          </p>
+                                          <p className="text-xs mt-1">
+                                            Stop is far from entry, risking{' '}
+                                            {riskPercent.toFixed(2)}% of
+                                            capital. Consider moving your stop
+                                            closer to reduce exposure.
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )
+                                  }
+
+                                  if (isProfitLocked) {
+                                    return (
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          {stopContent}
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p className="text-emerald-500 font-medium">
+                                            Profit Locked In
+                                          </p>
+                                          <p className="text-xs">
+                                            Stop is above your cost basis
+                                          </p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    )
+                                  }
+
+                                  return stopContent
+                                })()}
+                              </td>
+                              <td className="px-4 py-3">
+                                {trade.currentPrice
+                                  ? trade.currentPrice.toFixed(2)
+                                  : '—'}
+                              </td>
+                              <td className="px-4 py-3">
+                                {symbolInfo.isOption ? (
+                                  <div className="opacity-40 pointer-events-none">
+                                    <PriceRangeBar
+                                      entry={trade.entry}
+                                      stop={getEffectiveStop(trade)}
+                                      currentPrice={trade.currentPrice}
+                                      target={trade.target}
+                                      direction={trade.direction}
+                                    />
                                   </div>
-                                )
-                              })()}
-                            </td>
-                            <td className="px-4 py-3 text-right flex items-center justify-end gap-1">
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setSelectedTrade(trade)
-                                      setStopModalOpen(true)
-                                    }}
-                                  >
-                                    <ShieldAlert
-                                      size={18}
-                                      className="text-gray-500"
-                                    />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>
-                                    {t('activePositions.actions.adjustStop')}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      if (onAddToPosition) {
-                                        onAddToPosition(trade)
-                                      }
-                                    }}
-                                  >
-                                    <PlusCircle
-                                      size={18}
-                                      className="text-gray-500"
-                                    />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>
-                                    {t('activePositions.actions.addToPosition')}
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <button
-                                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setTradeToClose(trade)
-                                      setCloseConfirmOpen(true)
-                                    }}
-                                  >
-                                    <XCircle
-                                      size={18}
-                                      className="text-gray-500"
-                                    />
-                                  </button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{t('activePositions.actions.close')}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </td>
-                          </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                                ) : (
+                                  <PriceRangeBar
+                                    entry={trade.entry}
+                                    stop={getEffectiveStop(trade)}
+                                    currentPrice={trade.currentPrice}
+                                    target={trade.target}
+                                    direction={trade.direction}
+                                  />
+                                )}
+                              </td>
+                              <td className="px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span>
+                                    {privacyMode ? '•••' : trade.positionSize}
+                                  </span>
+                                  {/* Only show edit button for manual positions, not broker-synced */}
+                                  {!trade.syncedFromBroker && !privacyMode && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setTradeToEditShares(trade)
+                                            setEditSharesModalOpen(true)
+                                          }}
+                                        >
+                                          <SquarePen
+                                            size={14}
+                                            className="text-gray-500"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>
+                                          {t(
+                                            'activePositions.actions.editShares',
+                                          )}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                {symbolInfo.isOption ? (
+                                  <div className="flex flex-col text-gray-400 dark:text-gray-500">
+                                    <span className="font-medium">N/A</span>
+                                    <span className="text-xs">-</span>
+                                  </div>
+                                ) : (
+                                  (() => {
+                                    const riskRemaining = getRiskRemaining(
+                                      trade,
+                                      marketCapital,
+                                    )
+                                    return (
+                                      <div className="flex flex-col">
+                                        <span className="font-medium">
+                                          {privacyMode
+                                            ? `${marketCurrencySymbol}••••`
+                                            : `${marketCurrencySymbol}${riskRemaining.amount.toFixed(2)}`}
+                                        </span>
+                                        <span className="text-xs text-gray-500">
+                                          {riskRemaining.percent.toFixed(2)}%
+                                        </span>
+                                      </div>
+                                    )
+                                  })()
+                                )}
+                              </td>
+                              <td className="px-1 py-3 text-center sticky right-0 bg-white dark:bg-gray-800 z-10 before:absolute before:left-0 before:top-0 before:bottom-0 before:w-px before:bg-gray-200 dark:before:bg-gray-700 w-12">
+                                <div className="flex items-center justify-end gap-1">
+                                  {/* Only show adjust stop for manual positions, not broker-synced */}
+                                  {!trade.syncedFromBroker && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setSelectedTrade(trade)
+                                            setStopModalOpen(true)
+                                          }}
+                                        >
+                                          <ShieldAlert
+                                            size={18}
+                                            className="text-gray-500"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>
+                                          {t(
+                                            'activePositions.actions.adjustStop',
+                                          )}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <button
+                                        className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          if (onAddToPosition) {
+                                            onAddToPosition(trade)
+                                          }
+                                        }}
+                                      >
+                                        <PlusCircle
+                                          size={18}
+                                          className="text-gray-500"
+                                        />
+                                      </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>
+                                        {t(
+                                          'activePositions.actions.addToPosition',
+                                        )}
+                                      </p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  {/* Only show close position for manual positions, not broker-synced */}
+                                  {!trade.syncedFromBroker && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <button
+                                          className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full"
+                                          onClick={(e) => {
+                                            e.stopPropagation()
+                                            setTradeToClose(trade)
+                                            setCloseConfirmOpen(true)
+                                          }}
+                                        >
+                                          <XCircle
+                                            size={18}
+                                            className="text-gray-500"
+                                          />
+                                        </button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>
+                                          {t('activePositions.actions.close')}
+                                        </p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )
             })}
