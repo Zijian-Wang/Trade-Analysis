@@ -65,6 +65,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .json({ success: false, error: 'Missing required parameters' })
     }
 
+    if (!process.env.SCHWAB_CLIENT_ID || !process.env.SCHWAB_CLIENT_SECRET) {
+      return res.status(500).json({
+        success: false,
+        error:
+          'Server misconfiguration: missing SCHWAB_CLIENT_ID and/or SCHWAB_CLIENT_SECRET.',
+      })
+    }
+
     const redirect_uri = (process.env.SCHWAB_REDIRECT_URI || redirectUri) as
       | string
       | undefined

@@ -87,8 +87,28 @@ export async function exchangeCodeForTokens(
       }),
     })
 
-    const data = await response.json()
-    return data
+    const contentType = response.headers.get('content-type') || ''
+    const isJson = contentType.includes('application/json')
+
+    if (isJson) {
+      const data = (await response.json()) as {
+        success?: boolean
+        accountHash?: string
+        error?: string
+      }
+      return {
+        success: Boolean(data?.success),
+        accountHash: data?.accountHash,
+        error: data?.error,
+      }
+    }
+
+    const text = await response.text()
+    const snippet = text.trim().slice(0, 240)
+    return {
+      success: false,
+      error: `Token exchange failed (HTTP ${response.status}). ${snippet || 'Non-JSON response from /api/auth/schwab/callback'}`,
+    }
   } catch (error) {
     console.error('Token exchange error:', error)
     return { success: false, error: 'Failed to exchange authorization code' }
