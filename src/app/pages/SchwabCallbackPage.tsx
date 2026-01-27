@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { exchangeCodeForTokens } from '../services/schwabAuth'
 import { Loader } from '../components/ui/loader'
@@ -13,21 +13,29 @@ interface SchwabCallbackPageProps {
  * Handles the redirect from Schwab OAuth flow
  */
 export function SchwabCallbackPage({ onComplete }: SchwabCallbackPageProps) {
-  const { user } = useAuth()
+  const { user, loading } = useAuth()
   const { t } = useLanguage()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>(
     'processing',
   )
   const [errorMessage, setErrorMessage] = useState<string>('')
+  const hasHandledRef = useRef(false)
 
   useEffect(() => {
     const handleCallback = async () => {
+      if (loading) return
+      if (hasHandledRef.current) return
+
+      setStatus('processing')
+      setErrorMessage('')
+
       // Parse URL parameters
       const urlParams = new URLSearchParams(window.location.search)
       const code = urlParams.get('code')
       const error = urlParams.get('error')
 
       if (error) {
+        hasHandledRef.current = true
         setStatus('error')
         setErrorMessage(
           error === 'access_denied' ? 'Authorization was denied' : error,
@@ -36,31 +44,42 @@ export function SchwabCallbackPage({ onComplete }: SchwabCallbackPageProps) {
       }
 
       if (!code) {
+        hasHandledRef.current = true
         setStatus('error')
         setErrorMessage('No authorization code received')
         return
       }
 
-      if (!user?.uid) {
-        setStatus('error')
-        setErrorMessage('User not authenticated')
-        return
-      }
+      if (!user?.uid) return
 
       // Get code verifier from sessionStorage
       const codeVerifier = sessionStorage.getItem('schwab_code_verifier')
       if (!codeVerifier) {
+        hasHandledRef.current = true
         setStatus('error')
         setErrorMessage('Code verifier not found. Please try linking again.')
         return
       }
 
+      // Use the same redirect URI used during authorization (must match exactly)
+      const redirectUri =
+        sessionStorage.getItem('schwab_redirect_uri') ||
+        `${window.location.origin}/auth/schwab/callback`
+
+      hasHandledRef.current = true
+
       // Exchange code for tokens
-      const result = await exchangeCodeForTokens(code, codeVerifier, user.uid)
+      const result = await exchangeCodeForTokens(
+        code,
+        codeVerifier,
+        user.uid,
+        redirectUri,
+      )
 
       if (result.success) {
         setStatus('success')
         sessionStorage.removeItem('schwab_code_verifier')
+        sessionStorage.removeItem('schwab_redirect_uri')
         // Clean URL
         window.history.replaceState({}, '', window.location.pathname)
         // Call onComplete callback after 2 seconds
@@ -74,7 +93,7 @@ export function SchwabCallbackPage({ onComplete }: SchwabCallbackPageProps) {
     }
 
     handleCallback()
-  }, [user, onComplete])
+  }, [user, loading, onComplete])
 
   if (status === 'processing') {
     return (

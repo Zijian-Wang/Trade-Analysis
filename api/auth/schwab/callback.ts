@@ -15,6 +15,38 @@ if (!getApps().length) {
 
 const db = getFirestore()
 
+function summarizeSchwabTokenError(raw: string): string {
+  // Schwab typically returns JSON like:
+  // {"error":"invalid_grant","error_description":"..."}
+  try {
+    const parsed = JSON.parse(raw) as {
+      error?: string
+      error_description?: string
+      message?: string
+    }
+
+    const code = parsed.error || parsed.message
+    const desc = parsed.error_description
+
+    if (!code) return 'Failed to exchange authorization code'
+
+    if (code === 'invalid_grant') {
+      return [
+        'Failed to exchange authorization code (invalid_grant).',
+        'Most common causes: redirect URI mismatch, expired/used code, or PKCE verifier mismatch.',
+      ].join(' ')
+    }
+
+    return desc
+      ? `Failed to exchange authorization code (${code}): ${desc}`
+      : `Failed to exchange authorization code (${code})`
+  } catch {
+    const trimmed = raw.trim()
+    if (!trimmed) return 'Failed to exchange authorization code'
+    return `Failed to exchange authorization code: ${trimmed.slice(0, 180)}`
+  }
+}
+
 /**
  * OAuth callback handler for Schwab account linking
  * Exchanges authorization code for access/refresh tokens
@@ -25,10 +57,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { code, codeVerifier, userId } = req.body
+    const { code, codeVerifier, userId, redirectUri } = req.body
 
     if (!code || !codeVerifier || !userId) {
-      return res.status(400).json({ error: 'Missing required parameters' })
+      return res
+        .status(400)
+        .json({ success: false, error: 'Missing required parameters' })
+    }
+
+    const redirect_uri = (process.env.SCHWAB_REDIRECT_URI || redirectUri) as
+      | string
+      | undefined
+
+    if (!redirect_uri) {
+      return res.status(500).json({
+        success: false,
+        error:
+          'Server misconfiguration: missing SCHWAB_REDIRECT_URI (and no redirectUri provided).',
+      })
     }
 
     // Exchange authorization code for tokens
@@ -43,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         body: new URLSearchParams({
           grant_type: 'authorization_code',
           code,
-          redirect_uri: process.env.SCHWAB_REDIRECT_URI!,
+          redirect_uri,
           code_verifier: codeVerifier,
         }),
       },
@@ -54,7 +100,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.error('Token exchange failed:', error)
       return res
         .status(400)
-        .json({ error: 'Failed to exchange authorization code' })
+        .json({ success: false, error: summarizeSchwabTokenError(error) })
     }
 
     const tokens = await tokenResponse.json()
@@ -74,7 +120,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )
 
     if (!accountsResponse.ok) {
-      return res.status(400).json({ error: 'Failed to fetch account numbers' })
+      return res
+        .status(400)
+        .json({ success: false, error: 'Failed to fetch account numbers' })
     }
 
     const accounts = await accountsResponse.json()
@@ -104,6 +152,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error) {
     console.error('OAuth callback error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    return res
+      .status(500)
+      .json({ success: false, error: 'Internal server error' })
   }
 }

@@ -41,9 +41,14 @@ export async function getSchwabAuthUrl(): Promise<{
   const codeVerifier = generateCodeVerifier()
   const codeChallenge = await generateCodeChallenge(codeVerifier)
 
+  // Must match exactly what the backend uses for token exchange
+  const redirectUri =
+    import.meta.env.VITE_SCHWAB_REDIRECT_URI ||
+    `${window.location.origin}/auth/schwab/callback`
+
   const params = new URLSearchParams({
     client_id: import.meta.env.VITE_SCHWAB_CLIENT_ID || '',
-    redirect_uri: `${window.location.origin}/auth/schwab/callback`,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope: 'readonly',
     code_challenge: codeChallenge,
@@ -54,6 +59,7 @@ export async function getSchwabAuthUrl(): Promise<{
 
   // Store code verifier in sessionStorage for callback
   sessionStorage.setItem('schwab_code_verifier', codeVerifier)
+  sessionStorage.setItem('schwab_redirect_uri', redirectUri)
 
   return { url: authUrl, codeVerifier }
 }
@@ -65,6 +71,7 @@ export async function exchangeCodeForTokens(
   code: string,
   codeVerifier: string,
   userId: string,
+  redirectUri?: string,
 ): Promise<{ success: boolean; accountHash?: string; error?: string }> {
   try {
     const response = await fetch('/api/auth/schwab/callback', {
@@ -76,6 +83,7 @@ export async function exchangeCodeForTokens(
         code,
         codeVerifier,
         userId,
+        redirectUri,
       }),
     })
 
