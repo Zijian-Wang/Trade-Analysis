@@ -26,6 +26,17 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       })
     }
 
+    // Diagnostic info about the key format
+    const keyDiagnostics = {
+      length: privateKey.length,
+      startsWithQuote: privateKey.startsWith('"') || privateKey.startsWith("'"),
+      hasBeginMarker: privateKey.includes('-----BEGIN PRIVATE KEY-----'),
+      hasEndMarker: privateKey.includes('-----END PRIVATE KEY-----'),
+      hasLiteralBackslashN: privateKey.includes('\\n'),
+      hasActualNewlines: privateKey.includes('\n'),
+      first60Chars: privateKey.substring(0, 60).replace(/\n/g, '\\n'),
+    }
+
     // Step 3: Try to initialize
     if (!firebaseAdmin.getApps().length) {
       firebaseAdmin.initializeApp({
@@ -45,12 +56,23 @@ export default async function handler(_req: VercelRequest, res: VercelResponse) 
       success: true,
       message: 'Firebase Admin initialized successfully',
       projectId,
+      keyDiagnostics,
     })
   } catch (error) {
+    const privateKey = process.env.FIREBASE_PRIVATE_KEY
     return res.status(200).json({
       success: false,
       error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
+      stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : undefined,
+      keyDiagnostics: privateKey ? {
+        length: privateKey.length,
+        startsWithQuote: privateKey.startsWith('"') || privateKey.startsWith("'"),
+        hasBeginMarker: privateKey.includes('-----BEGIN PRIVATE KEY-----'),
+        hasEndMarker: privateKey.includes('-----END PRIVATE KEY-----'),
+        hasLiteralBackslashN: privateKey.includes('\\n'),
+        hasActualNewlines: privateKey.includes('\n'),
+        first60Chars: privateKey.substring(0, 60).replace(/\n/g, '\\n'),
+      } : null,
     })
   }
 }

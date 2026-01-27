@@ -33,12 +33,32 @@ export function getDb(): Firestore {
     }
 
     try {
+      // Normalize the private key - handle various formats from different env var sources
+      let normalizedKey = privateKey
+      
+      // Remove surrounding quotes if present (some env var UIs add these)
+      if ((normalizedKey.startsWith('"') && normalizedKey.endsWith('"')) ||
+          (normalizedKey.startsWith("'") && normalizedKey.endsWith("'"))) {
+        normalizedKey = normalizedKey.slice(1, -1)
+      }
+      
+      // Convert escaped newlines to actual newlines
+      // Handle both \\n (double-escaped) and \n (single-escaped)
+      normalizedKey = normalizedKey.replace(/\\\\n/g, '\n').replace(/\\n/g, '\n')
+      
+      // Validate the key format
+      if (!normalizedKey.includes('-----BEGIN PRIVATE KEY-----')) {
+        throw new Error('Private key missing BEGIN marker. Check FIREBASE_PRIVATE_KEY format.')
+      }
+      if (!normalizedKey.includes('-----END PRIVATE KEY-----')) {
+        throw new Error('Private key missing END marker. Check FIREBASE_PRIVATE_KEY format.')
+      }
+      
       firebaseApp = initializeApp({
         credential: cert({
           projectId,
           clientEmail,
-          // Vercel stores multi-line env vars with literal \n - convert to actual newlines
-          privateKey: privateKey.replace(/\\n/g, '\n'),
+          privateKey: normalizedKey,
         }),
       })
     } catch (e) {
