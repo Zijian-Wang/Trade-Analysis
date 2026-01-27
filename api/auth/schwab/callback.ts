@@ -162,6 +162,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       { merge: true },
     )
 
+    // Also update user preferences to mark Schwab as linked
+    const prefsRef = firestore
+      .collection('users')
+      .doc(userId)
+      .collection('settings')
+      .doc('preferences')
+    await prefsRef.set(
+      {
+        schwabLinked: true,
+        schwabLinkedAt: Date.now(),
+      },
+      { merge: true },
+    )
+
     return res.status(200).json({
       success: true,
       accountHash: primaryAccount.hashValue,

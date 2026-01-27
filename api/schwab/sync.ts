@@ -145,7 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     )
 
     if (!positionsResponse.ok) {
-      return res.status(400).json({ error: 'Failed to fetch positions' })
+      const errorText = await positionsResponse.text()
+      console.error('Failed to fetch positions:', positionsResponse.status, errorText)
+      return res.status(400).json({
+        success: false,
+        error: `Failed to fetch positions (${positionsResponse.status}): ${errorText.slice(0, 200)}`,
+      })
     }
 
     const positionsData = (await positionsResponse.json()) as SchwabAccountData
@@ -375,6 +380,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error) {
     console.error('Sync error:', error)
-    return res.status(500).json({ error: 'Internal server error' })
+    return res.status(500).json({
+      success: false,
+      error: error instanceof Error ? `Sync failed: ${error.message}` : 'Internal server error',
+    })
   }
 }
