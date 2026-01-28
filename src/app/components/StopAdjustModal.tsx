@@ -9,7 +9,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Label } from './ui/label'
 import { useState, useEffect } from 'react'
-import { Trade, RiskContract, updateTrade } from '../services/tradeService'
+import { Trade, updateTrade } from '../services/tradeService'
 import { useLanguage } from '../context/LanguageContext'
 import { useAuth } from '../context/AuthContext'
 import {

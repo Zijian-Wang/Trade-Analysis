@@ -9,6 +9,10 @@
       "destination": "https://www.alphavantage.co/$1"
     },
     {
+      "source": "/api/tencent/(.*)",
+      "destination": "https://qt.gtimg.cn/$1"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

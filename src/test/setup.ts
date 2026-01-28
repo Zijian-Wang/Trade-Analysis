@@ -1,4 +1,6 @@
 import '@testing-library/jest-dom/vitest';
+import type { ReactNode } from 'react'
+import { vi } from 'vitest'
 
 // Mock Firebase for tests
 vi.mock('../app/firebase', () => ({
@@ -15,5 +17,5 @@ vi.mock('next-themes', () => ({
     setTheme: vi.fn(),
     resolvedTheme: 'light',
   }),
-  ThemeProvider: ({ children }: { children: React.ReactNode }) => children,
+  ThemeProvider: ({ children }: { children: ReactNode }) => children,
 }));

@@ -20,7 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { calculateTradeRisk } from '../services/riskCalculator'
 
 interface ManualPositionModalProps {
   open: boolean

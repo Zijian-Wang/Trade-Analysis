@@ -19,18 +19,12 @@ import { UserMenu } from "./UserMenu";
 interface HeaderProps {
   market: "US" | "CN";
   onMarketChange: (value: "US" | "CN") => void;
-  currentPage: 'main' | 'active' | 'portfolio' | 'settings';
-  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'settings') => void;
+  onNavigate: (page: 'main' | 'active' | 'settings') => void;
 }
 
-export function Header({ market, onMarketChange, currentPage, onNavigate }: HeaderProps) {
+export function Header({ market, onMarketChange, onNavigate }: HeaderProps) {
   const { t } = useLanguage();
   const { theme, setTheme } = useTheme();
-
-  // Determine if we are effectively in dark mode (handles 'system' preference)
-  // Note: For simple UI toggles, usually checking theme === 'dark' is enough, 
-  // but if we want to show the icon based on resolving system, we rely on standard behavior or user preference.
-  const isDark = theme === "dark";
 
   return (
     <header className="border-b backdrop-blur-sm transition-colors duration-300 dark:border-gray-700 dark:bg-gray-900/80 border-gray-200 bg-white/80">

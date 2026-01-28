@@ -1,5 +1,3 @@
-import React from 'react'
-
 type MarketFlagProps = {
   market: 'US' | 'CN'
   className?: string

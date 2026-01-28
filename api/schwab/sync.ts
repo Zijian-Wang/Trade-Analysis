@@ -248,10 +248,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             (direction === 'long' ? 'SELL' : 'BUY'),
       )
 
-      // Determine if supported (EQUITY and ETF are both tradeable like stocks)
-      const assetType = position.instrument.assetType
-      const isSupported = assetType === 'EQUITY' || assetType === 'ETF'
-      const instrumentType = isSupported ? assetType : 'UNSUPPORTED'
+      // Determine if supported.
+      // Schwab commonly uses `assetType: "EQUITY"` for both stocks and ETFs.
+      // In the wild, some ETF-like holdings may come back with unexpected asset types,
+      // so we also use a lightweight description heuristic to avoid false "Unsupported".
+      const assetTypeRaw = (position.instrument.assetType || '').toUpperCase()
+      const description = position.instrument.description || ''
+      const looksLikeEtf = /\bETF\b/i.test(description)
+
+      const isEquityLike =
+        assetTypeRaw === 'EQUITY' || assetTypeRaw === 'ETF' || looksLikeEtf
+
+      // We currently only treat equity-like positions as supported for risk calc.
+      const isSupported = isEquityLike
+
+      // Normalize instrumentType to our frontend union.
+      const instrumentType =
+        assetTypeRaw === 'OPTION'
+          ? 'OPTION'
+          : isEquityLike
+            ? 'EQUITY'
+            : 'UNSUPPORTED'
 
       // Calculate effective stop
       const effectiveStop = matchingStopOrder?.stopPrice || null

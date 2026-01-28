@@ -34,12 +34,6 @@ const ActivePositionsPage = lazy(() =>
   })),
 )
 
-const PortfolioOverviewPage = lazy(() =>
-  import('./pages/PortfolioOverviewPage').then((m) => ({
-    default: m.PortfolioOverviewPage,
-  })),
-)
-
 const SchwabCallbackPage = lazy(() =>
   import('./pages/SchwabCallbackPage').then((m) => ({
     default: m.SchwabCallbackPage,
@@ -58,15 +52,16 @@ export default function App() {
 
   // Navigation
   const [currentPage, setCurrentPage] = useState<
-    'main' | 'active' | 'portfolio' | 'settings' | 'schwab-callback'
+    'main' | 'active' | 'settings' | 'schwab-callback'
   >('main')
+  const navPage = currentPage === 'schwab-callback' ? 'main' : currentPage
   const [entryContext, setEntryContext] = useState<Trade | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
 
   // Check if we're on Schwab callback page
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    if (urlParams.get('code') || urlParams.get('error')) {
+    const isSchwabCallbackPath = window.location.pathname === '/auth/schwab/callback'
+    if (isSchwabCallbackPath) {
       setCurrentPage('schwab-callback')
     }
   }, [])
@@ -275,14 +270,9 @@ export default function App() {
     page:
       | 'main'
       | 'active'
-      | 'portfolio'
       | 'settings'
       | 'schwab-callback',
   ) => {
-    // Prevent navigation to portfolio page (work in progress)
-    if (page === 'portfolio') {
-      return
-    }
     if (page === 'settings') {
       setSettingsOpen(true)
     } else {
@@ -332,11 +322,10 @@ export default function App() {
       <Header
         market={market}
         onMarketChange={setMarket}
-        currentPage={currentPage}
         onNavigate={handleNavigate}
       />
 
-      <NavigationTabs currentPage={currentPage} onNavigate={handleNavigate} />
+      <NavigationTabs currentPage={navPage} onNavigate={handleNavigate} />
 
       {/* Email Verification Banner */}
       <EmailVerificationBanner />
@@ -352,18 +341,6 @@ export default function App() {
             }
           >
             <ActivePositionsPage onAddToPosition={handleAddToPosition} />
-          </Suspense>
-        )}
-
-        {currentPage === 'portfolio' && (
-          <Suspense
-            fallback={
-              <div className="flex justify-center p-8">
-                <Loader />
-              </div>
-            }
-          >
-            <PortfolioOverviewPage />
           </Suspense>
         )}
 

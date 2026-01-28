@@ -151,10 +151,11 @@
   - [x] Extract `stopPrice` as effective stop for risk calculation (where available)
 
 - [ ] **Instrument Type Detection**
-  - [ ] Check `instrument.assetType` from Schwab response
-  - [ ] Mark unsupported types: `OPTION` (multi-leg), `FUTURE`, complex derivatives
-  - [ ] Add `instrumentType` and `isSupported` flags to Trade model
-  - [ ] Return clear "Unsupported" labels in sync response
+  - [x] Check `instrument.assetType` from Schwab response
+  - [x] Add `instrumentType` and `isSupported` flags to Trade model
+  - [x] Treat equity-like holdings (including ETFs returned as `assetType: "EQUITY"`) as supported
+  - [ ] Mark unsupported types: `OPTION` (multi-leg), `FUTURE`, complex derivatives (future enhancement)
+  - [ ] Return clear "Unsupported" labels in sync response for complex derivatives (future enhancement)
 
 ### Milestone 5.4: Risk Calculation & UI Integration
 - [ ] **Risk Snapshot Service**
@@ -176,6 +177,12 @@
   - [ ] Display "Unsupported" badge for complex instruments
   - [ ] Show "No Stop Order" warning for positions without stops
   - [ ] Update portfolio risk summary with synced data
+
+### UI Enhancement: Symbol → Company Names (Performance)
+- [x] Resolve company names for Active Positions with minimal load-time impact
+  - [x] CN: lazy-loaded static map + cache; optional fallback for missing symbols
+  - [x] US: lazy-loaded static SEC-derived directory from `public/symbols/us_ticker_to_name.json`
+  - [x] Options: show underlying company name on desktop only
 
 ### UI Enhancement: Market Session Indicator
 - [x] Add market session status indicator icon on market cards (US/CN)

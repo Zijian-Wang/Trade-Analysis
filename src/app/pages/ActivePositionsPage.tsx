@@ -6,7 +6,6 @@ import {
   calculateTradeRisk,
 } from '../services/riskCalculator'
 import { useAuth } from '../context/AuthContext'
-import { useMarketSettings } from '../hooks/useMarketSettings'
 import { useUserPreferences } from '../context/UserPreferencesContext'
 import { Loader } from '../components/ui/loader'
 import { fetchCurrentPrices } from '../services/priceService'
@@ -54,7 +53,6 @@ export function ActivePositionsPage({
 }: ActivePositionsPageProps) {
   const { t } = useLanguage()
   const { user } = useAuth()
-  const { market } = useMarketSettings()
   const { preferences } = useUserPreferences()
   const [trades, setTrades] = useState<Trade[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,6 +79,47 @@ export function ActivePositionsPage({
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null)
   const [stockNames, setStockNames] = useState<Map<string, string>>(new Map())
 
+  // Parse option symbols (OCC format: SYMBOL + YYMMDD + C/P + Strike)
+  // Example: "GLD   260220P00450000" -> { underlying: "GLD", expiry: "2026/02/20", type: "PUT", strike: 450, isWeekly: true }
+  const parseOptionSymbol = (symbol: string) => {
+    // Option symbols are typically 21 chars: 6 char symbol (padded) + 6 digit date + 1 char type + 8 digit strike
+    const optionMatch = symbol.match(/^([A-Z]+)\s*(\d{6})([CP])(\d{8})$/)
+    if (optionMatch) {
+      const [, underlying, dateStr, optionType, strikeStr] = optionMatch
+      const year = '20' + dateStr.slice(0, 2)
+      const month = dateStr.slice(2, 4)
+      const day = dateStr.slice(4, 6)
+      const strike = parseInt(strikeStr) / 1000 // Strike is in 1/1000 dollars
+
+      // Check if it's a weekly option (not the 3rd Friday of the month)
+      const expiryDate = new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day),
+      )
+      const dayOfWeek = expiryDate.getDay()
+      const dayOfMonth = expiryDate.getDate()
+      // 3rd Friday is between 15th-21st and is a Friday (day 5)
+      const isThirdFriday =
+        dayOfWeek === 5 && dayOfMonth >= 15 && dayOfMonth <= 21
+      const isWeekly = !isThirdFriday
+
+      return {
+        isOption: true,
+        underlying: underlying.trim(),
+        expiry: `${year}/${month}/${day}`,
+        type: optionType === 'C' ? 'CALL' : 'PUT',
+        strike,
+        isWeekly,
+      }
+    }
+    return {
+      isOption: false,
+      underlying: symbol,
+      isWeekly: false,
+    }
+  }
+
   // Privacy mode state
   const [privacyMode, setPrivacyMode] = useState(false)
   const maskedValue = '••••••'
@@ -103,8 +142,8 @@ export function ActivePositionsPage({
           : false
 
         // If stop is invalid, try to use structureStop (migration case)
-        if (!stopValid && (trade as any).structureStop) {
-          const structureStop = (trade as any).structureStop
+        if (!stopValid && trade.structureStop) {
+          const structureStop = trade.structureStop
           const structureStopValid = isLong
             ? structureStop < trade.entry
             : structureStop > trade.entry
@@ -157,10 +196,16 @@ export function ActivePositionsPage({
   // Fetch company names for all trades
   useEffect(() => {
     const fetchNames = async () => {
-      const symbols = trades.map((trade) => ({
-        symbol: trade.symbol,
-        market: trade.market || 'US',
-      }))
+      const dedup = new Map<string, { symbol: string; market: 'US' | 'CN' }>()
+
+      trades.forEach((trade) => {
+        const market = trade.market || 'US'
+        const info = parseOptionSymbol(trade.symbol)
+        const symbol = info.isOption ? info.underlying : trade.symbol
+        dedup.set(`${market}:${symbol}`, { symbol, market })
+      })
+
+      const symbols = Array.from(dedup.values())
       if (symbols.length > 0) {
         const names = await getStockNames(symbols)
         setStockNames(names)
@@ -649,58 +694,10 @@ export function ActivePositionsPage({
                       </thead>
                       <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                         {groupTrades.map((trade) => {
-                          // Parse option symbols (OCC format: SYMBOL + YYMMDD + C/P + Strike)
-                          // Example: "GLD   260220P00450000" -> { underlying: "GLD", expiry: "2026/02/20", type: "PUT", strike: 450, isWeekly: true }
-                          const parseOptionSymbol = (symbol: string) => {
-                            // Option symbols are typically 21 chars: 6 char symbol (padded) + 6 digit date + 1 char type + 8 digit strike
-                            const optionMatch = symbol.match(
-                              /^([A-Z]+)\s*(\d{6})([CP])(\d{8})$/,
-                            )
-                            if (optionMatch) {
-                              const [
-                                ,
-                                underlying,
-                                dateStr,
-                                optionType,
-                                strikeStr,
-                              ] = optionMatch
-                              const year = '20' + dateStr.slice(0, 2)
-                              const month = dateStr.slice(2, 4)
-                              const day = dateStr.slice(4, 6)
-                              const strike = parseInt(strikeStr) / 1000 // Strike is in 1/1000 dollars
-
-                              // Check if it's a weekly option (not the 3rd Friday of the month)
-                              const expiryDate = new Date(
-                                parseInt(year),
-                                parseInt(month) - 1,
-                                parseInt(day),
-                              )
-                              const dayOfWeek = expiryDate.getDay()
-                              const dayOfMonth = expiryDate.getDate()
-                              // 3rd Friday is between 15th-21st and is a Friday (day 5)
-                              const isThirdFriday =
-                                dayOfWeek === 5 &&
-                                dayOfMonth >= 15 &&
-                                dayOfMonth <= 21
-                              const isWeekly = !isThirdFriday
-
-                              return {
-                                isOption: true,
-                                underlying: underlying.trim(),
-                                expiry: `${year}/${month}/${day}`,
-                                type: optionType === 'C' ? 'CALL' : 'PUT',
-                                strike,
-                                isWeekly,
-                              }
-                            }
-                            return {
-                              isOption: false,
-                              underlying: symbol,
-                              isWeekly: false,
-                            }
-                          }
-
                           const symbolInfo = parseOptionSymbol(trade.symbol)
+                          const noStopDetected =
+                            trade.syncedFromBroker &&
+                            trade.hasWorkingStop === false
 
                           // Render warning icons (reusable for both option and stock)
                           const renderWarningIcons = () => (
@@ -737,7 +734,8 @@ export function ActivePositionsPage({
                                       </p>
                                       <p className="text-xs text-gray-400">
                                         This position has no working stop order.
-                                        Using 5% fallback for risk calculation.
+                                        Stop and risk cannot be calculated until a
+                                        stop is set.
                                       </p>
                                     </TooltipContent>
                                   </Tooltip>
@@ -760,6 +758,13 @@ export function ActivePositionsPage({
                                           <span className="font-semibold">{symbolInfo.underlying}</span>
                                           {renderWarningIcons()}
                                         </div>
+                                        {stockNames.get(symbolInfo.underlying) &&
+                                          stockNames.get(symbolInfo.underlying) !==
+                                            symbolInfo.underlying && (
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-normal truncate">
+                                              {stockNames.get(symbolInfo.underlying)}
+                                            </span>
+                                          )}
                                         <span className="text-xs text-gray-500 dark:text-gray-400 font-normal">
                                           {symbolInfo.expiry} ${symbolInfo.strike} {trade.direction === 'long' ? 'Long' : 'Short'} {symbolInfo.type}{symbolInfo.isWeekly && ' (Wkly)'}
                                         </span>
@@ -802,6 +807,14 @@ export function ActivePositionsPage({
                               </td>
                               <td className="px-4 py-3">
                                 {(() => {
+                                  if (noStopDetected) {
+                                    return (
+                                      <span className="text-gray-400 dark:text-gray-500">
+                                        -
+                                      </span>
+                                    )
+                                  }
+
                                   // Show effective stop (the actual current stop)
                                   const effectiveStop = getEffectiveStop(trade)
                                   const isLong = trade.direction === 'long'
@@ -938,7 +951,7 @@ export function ActivePositionsPage({
                                   <div className="opacity-40 pointer-events-none">
                                     <PriceRangeBar
                                       entry={trade.entry}
-                                      stop={getEffectiveStop(trade)}
+                                      stop={noStopDetected ? null : getEffectiveStop(trade)}
                                       currentPrice={trade.currentPrice}
                                       target={trade.target}
                                       direction={trade.direction}
@@ -947,7 +960,7 @@ export function ActivePositionsPage({
                                 ) : (
                                   <PriceRangeBar
                                     entry={trade.entry}
-                                    stop={getEffectiveStop(trade)}
+                                    stop={noStopDetected ? null : getEffectiveStop(trade)}
                                     currentPrice={trade.currentPrice}
                                     target={trade.target}
                                     direction={trade.direction}
@@ -989,7 +1002,7 @@ export function ActivePositionsPage({
                                 </div>
                               </td>
                               <td className="px-4 py-3">
-                                {symbolInfo.isOption ? (
+                                {symbolInfo.isOption || noStopDetected ? (
                                   <div className="flex flex-col text-gray-400 dark:text-gray-500">
                                     <span className="font-medium">N/A</span>
                                     <span className="text-xs">-</span>

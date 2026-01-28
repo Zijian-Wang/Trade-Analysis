@@ -2,7 +2,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
 
 interface PriceRangeBarProps {
   entry: number
-  stop: number
+  stop?: number | null
   currentPrice?: number
   target?: number | null
   direction: 'long' | 'short'
@@ -20,7 +20,8 @@ export function PriceRangeBar({
   direction,
 }: PriceRangeBarProps) {
   // Determine the price range to display
-  const prices = [stop, entry]
+  const prices = [entry]
+  if (stop !== null && stop !== undefined) prices.push(stop)
   if (currentPrice) prices.push(currentPrice)
   if (target) prices.push(target)
 
@@ -33,7 +34,8 @@ export function PriceRangeBar({
   // Calculate positions as percentages
   const getPosition = (price: number) => ((price - minPrice) / range) * 100
 
-  const stopPos = getPosition(stop)
+  const stopPos =
+    stop !== null && stop !== undefined ? getPosition(stop) : null
   const entryPos = getPosition(entry)
   const currentPos = currentPrice ? getPosition(currentPrice) : null
   const targetPos = target ? getPosition(target) : null
@@ -47,8 +49,10 @@ export function PriceRangeBar({
 
   // Calculate risk/reward zones
   const isLong = direction === 'long'
-  const riskZoneStart = isLong ? stopPos : entryPos
-  const riskZoneEnd = isLong ? entryPos : stopPos
+  const riskZoneStart =
+    stopPos !== null ? (isLong ? stopPos : entryPos) : null
+  const riskZoneEnd =
+    stopPos !== null ? (isLong ? entryPos : stopPos) : null
   const rewardZoneStart = isLong ? entryPos : (targetPos ?? entryPos)
   const rewardZoneEnd = isLong ? (targetPos ?? entryPos) : entryPos
 
@@ -58,13 +62,15 @@ export function PriceRangeBar({
       <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-gray-300 dark:bg-gray-600 -translate-y-1/2" />
 
       {/* Risk zone (red) - between stop and entry */}
-      <div
-        className="absolute top-1/2 h-1 bg-rose-200 dark:bg-rose-900/50 -translate-y-1/2 rounded-full"
-        style={{
-          left: `${Math.min(riskZoneStart, riskZoneEnd)}%`,
-          width: `${Math.abs(riskZoneEnd - riskZoneStart)}%`,
-        }}
-      />
+      {riskZoneStart !== null && riskZoneEnd !== null && (
+        <div
+          className="absolute top-1/2 h-1 bg-rose-200 dark:bg-rose-900/50 -translate-y-1/2 rounded-full"
+          style={{
+            left: `${Math.min(riskZoneStart, riskZoneEnd)}%`,
+            width: `${Math.abs(riskZoneEnd - riskZoneStart)}%`,
+          }}
+        />
+      )}
 
       {/* Reward zone (green) - between entry and target */}
       {targetPos !== null && (
@@ -78,17 +84,21 @@ export function PriceRangeBar({
       )}
 
       {/* Stop marker */}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            className="absolute top-1/2 w-2 h-4 bg-rose-500 rounded-sm -translate-y-1/2 -translate-x-1/2 cursor-help hover:scale-110 transition-transform"
-            style={{ left: `${stopPos}%` }}
-          />
-        </TooltipTrigger>
-        <TooltipContent>
-          <p className="text-rose-500 font-medium">Stop: ${stop.toFixed(2)}</p>
-        </TooltipContent>
-      </Tooltip>
+      {stopPos !== null && stop !== null && stop !== undefined && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div
+              className="absolute top-1/2 w-2 h-4 bg-rose-500 rounded-sm -translate-y-1/2 -translate-x-1/2 cursor-help hover:scale-110 transition-transform"
+              style={{ left: `${stopPos}%` }}
+            />
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-rose-500 font-medium">
+              Stop: ${stop.toFixed(2)}
+            </p>
+          </TooltipContent>
+        </Tooltip>
+      )}
 
       {/* Entry marker */}
       <Tooltip>

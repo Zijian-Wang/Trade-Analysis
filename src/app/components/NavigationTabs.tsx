@@ -1,9 +1,8 @@
 import { useLanguage } from "../context/LanguageContext";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
 
 interface NavigationTabsProps {
-  currentPage: 'main' | 'active' | 'portfolio' | 'settings';
-  onNavigate: (page: 'main' | 'active' | 'portfolio' | 'settings') => void;
+  currentPage: 'main' | 'active' | 'settings';
+  onNavigate: (page: 'main' | 'active' | 'settings') => void;
 }
 
 export function NavigationTabs({ currentPage, onNavigate }: NavigationTabsProps) {
@@ -33,29 +32,6 @@ export function NavigationTabs({ currentPage, onNavigate }: NavigationTabsProps)
           >
             {t('header.nav_active')}
           </button>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                  disabled
-                  className={`py-3 text-sm font-medium border-b-2 transition-all whitespace-nowrap cursor-not-allowed opacity-50 ${
-                    currentPage === 'portfolio'
-                      ? 'border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500'
-                      : 'border-transparent text-gray-400 dark:text-gray-500'
-                  }`}
-                >
-                  {t('header.nav_portfolio')}
-                </button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{t('header.portfolioWip')}</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
         </nav>
       </div>
     </div>

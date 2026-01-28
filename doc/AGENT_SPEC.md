@@ -25,7 +25,7 @@ Your goal is to maintain the **Trade Lifecycle**, **Active Management**, and **V
 | **Entry Form** | `src/app/components/TradeInputCard.tsx` | Handles user input, validation, and Context Mode (Add to Position). |
 | **Risk Logic** | `src/app/services/riskCalculator.ts` | Pure function service for all risk math. |
 | **Active List** | `src/app/pages/ActivePositionsPage.tsx` | Displays grouped trades (US/CN), supports expansion for charts. |
-| **Portfolio** | `src/app/pages/PortfolioOverviewPage.tsx` | Multi-market risk analysis (Allocated Risk vs Safe Capital). |
+| **Portfolio** | *(Deferred)* | Portfolio overview UI is deferred/removed; keep docs/logic aligned with Active Positions + Entry flows. |
 | **Charting** | `src/app/components/MarketChart.tsx` | Reusable `lightweight-charts` component with ResizeObserver stability. |
 | **Dialogs** | `src/app/components/ConfirmDialog.tsx` | Generic alert/confirmation dialog (replaces window.confirm). |
 | **Persistence** | `src/app/services/tradeService.ts` | Handles unified API for Firestore/LocalStorage. |
@@ -92,11 +92,8 @@ interface RiskContract {
     *   Integrated `MarketChart` for visual planning.
     *   Creates new `RiskContract` under existing trade when in context mode.
 
-### 3. Portfolio Risk Summary (Complete)
-*   **Location**: `src/app/pages/PortfolioOverviewPage.tsx`
-*   **Metrics**:
-    *   Market-specific risk segmentation.
-    *   Total Open Risk ($/%) and Position Counts.
+### 3. Portfolio Risk Summary (Deferred)
+*   **Status**: Portfolio overview UI is deferred/removed. Keep portfolio-level metrics accurate in Active Positions.
 
 ### 4. Chart View (Deferred - Phase 5)
 *   **Status**: Removed from Active Positions due to price data mismatch issues
@@ -128,5 +125,23 @@ interface RiskContract {
 *   **Policy**: Multi-leg options, complex derivatives, and non-equity instruments should be clearly labeled as "Unsupported"
 *   **Implementation**: Add `instrumentType` and `isSupported` flags to Trade model
 *   **UI**: Display "Unsupported" badge and exclude from risk totals (or mark as "unknown risk")
+
+---
+
+## Symbol → Company Name Resolution (Performance Policy)
+
+**Goal**: Show company names without adding meaningful load-time or server burden.
+
+*   **Service**: `src/app/services/stockNameService.ts`
+*   **US**:
+    *   Prefer a **static SEC-derived directory** served from `public/symbols/us_ticker_to_name.json` (fetched lazily when needed).
+    *   A small built-in override map covers common ETFs/ADRs not present in the SEC dataset.
+    *   Avoid runtime paid/ratelimited APIs for company names.
+*   **CN**:
+    *   Prefer a **static local map** (lazy-loaded chunk).
+    *   Optional fallback may be used only for missing symbols, then cached.
+*   **Options display**:
+    *   Resolve company names using the **underlying** symbol.
+    *   Show the underlying company name on **desktop only** so expiry/strike/details remain primary.
 
 ---

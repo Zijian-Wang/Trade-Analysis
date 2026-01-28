@@ -1,17 +1,19 @@
 import { Card } from './ui/card'
-import { Label } from './ui/label'
 import { Input } from './ui/input'
 import { Slider } from './ui/slider'
-import { ArrowUpRight } from 'lucide-react'
+import { ArrowUpRight, CornerDownRight, Eye, EyeOff, X } from 'lucide-react'
 import { useState, useEffect, useMemo } from 'react'
 import { Loader } from './ui/loader'
 import { useLanguage } from '../context/LanguageContext'
 import { Button } from './ui/button'
 import { Typography } from './ui/typography'
-import { CornerDownRight, X } from 'lucide-react'
 import { Trade } from '../services/tradeService'
 import { calculatePositionSize } from '../services/riskCalculator'
-import { getStockName } from '../services/stockNameService'
+import {
+  getStockName,
+  getStockNameSync,
+  preloadChineseStaticNames,
+} from '../services/stockNameService'
 
 interface TradeInputCardProps {
   market: 'US' | 'CN'
@@ -67,8 +69,9 @@ export function TradeInputCard({
     portfolioCapital.toString(),
   )
   const [isPortfolioFocused, setIsPortfolioFocused] = useState(false)
+  const [portfolioPrivacyMode, setPortfolioPrivacyMode] = useState(false)
+  const maskedValue = '••••••'
   const [isFetchingPrice, setIsFetchingPrice] = useState(false)
-  const [isTyping, setIsTyping] = useState(false)
   const [companyName, setCompanyName] = useState<string>('')
 
   const [riskInputValue, setRiskInputValue] = useState(riskPerTrade.toFixed(2))
@@ -114,20 +117,30 @@ export function TradeInputCard({
     setTarget,
   ])
 
-  // Auto-fetch price and company name when ticker changes and not typing
+  // Lazy-load CN static name map only when needed (keeps initial load fast).
+  useEffect(() => {
+    if (market === 'CN') {
+      preloadChineseStaticNames().catch(() => {
+        // ignore preload failure; async lookup can still fall back
+      })
+    }
+  }, [market])
+
+  // Auto-fetch price and (CN) company name when ticker changes (debounced).
   useEffect(() => {
     const fetchPriceAndName = async () => {
       const symbol = tickerSymbol.trim()
-      if (!symbol || isTyping) {
+      if (!symbol) {
         setCompanyName('')
         return
       }
 
       const isUS = market === 'US' || /^[a-zA-Z]+$/.test(symbol)
       const isChinese = market === 'CN' || /^\d+$/.test(symbol)
+      const isFullChineseCode = /^\d{6}$/.test(symbol)
 
       let chineseSuffix = ''
-      if (isChinese) {
+      if (isChinese && isFullChineseCode) {
         if (/^[56]/.test(symbol)) {
           chineseSuffix = '.SHH'
         } else if (/^\d+$/.test(symbol) && !symbol.startsWith('920')) {
@@ -135,7 +148,7 @@ export function TradeInputCard({
         }
       }
 
-      // Only proceed if it's a recognized US stock or a valid Chinese stock code
+      // Only proceed if it's a recognized US stock or a valid full Chinese stock code
       if (!isUS && !chineseSuffix) {
         setCompanyName('')
         return
@@ -143,12 +156,11 @@ export function TradeInputCard({
 
       setIsFetchingPrice(true)
       try {
-        // Fetch company name for Chinese stocks
+        // Fetch company name for Chinese stocks (only for full 6-digit codes).
+        // This call is cached (memory + localStorage), and only hits the API as a last resort.
         if (isChinese && chineseSuffix) {
           const name = await getStockName(symbol, market)
           setCompanyName(name !== symbol ? name : '')
-        } else {
-          setCompanyName('')
         }
 
         // Fetch price
@@ -198,14 +210,24 @@ export function TradeInputCard({
       }
     }
 
-    const timeoutId = setTimeout(fetchPriceAndName, 1000)
+    const timeoutId = setTimeout(fetchPriceAndName, 450)
     return () => clearTimeout(timeoutId)
-  }, [tickerSymbol, setEntryPrice, isTyping, market])
+  }, [tickerSymbol, setEntryPrice, market])
 
   const handleTickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setTickerSymbol(value)
-    setIsTyping(true)
+
+    // Fast, zero-API CN name preview from local cache/static map while typing.
+    if (market === 'CN') {
+      const trimmed = value.trim()
+      if (/^\d{6}$/.test(trimmed)) {
+        const syncName = getStockNameSync(trimmed, 'CN')
+        setCompanyName(syncName !== trimmed ? syncName : '')
+      } else {
+        setCompanyName('')
+      }
+    }
   }
 
   // Validation logic
@@ -255,6 +277,15 @@ export function TradeInputCard({
   const handlePortfolioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPortfolioInputValue(e.target.value)
   }
+
+  const displayedPortfolioValue = portfolioPrivacyMode
+    ? maskedValue
+    : isPortfolioFocused
+      ? portfolioInputValue
+      : portfolioCapital.toLocaleString('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
 
   const handleRiskFocus = () => {
     setIsRiskFocused(true)
@@ -366,23 +397,51 @@ export function TradeInputCard({
               </span>
               <Input
                 type="text"
-                value={
-                  isPortfolioFocused
-                    ? portfolioInputValue
-                    : portfolioCapital.toLocaleString('en-US', {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })
-                }
-                onChange={handlePortfolioChange}
-                onFocus={handlePortfolioFocus}
-                onBlur={handlePortfolioBlur}
-                className={`text-lg sm:text-xl font-semibold h-auto py-2 sm:py-2.5 pl-6 sm:pl-8 transition-all ${
+                value={displayedPortfolioValue}
+                readOnly={portfolioPrivacyMode}
+                onChange={(e) => {
+                  if (portfolioPrivacyMode) return
+                  handlePortfolioChange(e)
+                }}
+                onFocus={(e) => {
+                  if (portfolioPrivacyMode) {
+                    e.target.blur()
+                    return
+                  }
+                  handlePortfolioFocus()
+                }}
+                onBlur={() => {
+                  if (portfolioPrivacyMode) return
+                  handlePortfolioBlur()
+                }}
+                className={`text-lg sm:text-xl font-semibold h-auto py-2 sm:py-2.5 pl-6 sm:pl-8 pr-10 transition-all ${
                   isDarkMode
                     ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
                     : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
                 }`}
               />
+              <button
+                type="button"
+                onClick={() => {
+                  setPortfolioPrivacyMode((v) => !v)
+                  setIsPortfolioFocused(false)
+                }}
+                className={`absolute right-2 sm:right-2.5 top-1/2 -translate-y-1/2 p-1 rounded transition-colors ${
+                  isDarkMode ? 'hover:bg-gray-700/60' : 'hover:bg-gray-100'
+                }`}
+                title={portfolioPrivacyMode ? 'Show value' : 'Hide value'}
+                aria-label={
+                  portfolioPrivacyMode
+                    ? 'Show portfolio value'
+                    : 'Hide portfolio value'
+                }
+              >
+                {portfolioPrivacyMode ? (
+                  <EyeOff size={16} className="text-gray-400" />
+                ) : (
+                  <Eye size={16} className="text-gray-400" />
+                )}
+              </button>
             </div>
           </div>
 
@@ -467,7 +526,6 @@ export function TradeInputCard({
               if (/^[a-zA-Z]+$/.test(tickerSymbol)) {
                 setTickerSymbol(tickerSymbol.toUpperCase())
               }
-              setIsTyping(false)
             }}
             placeholder={market === 'CN' ? '510300' : undefined}
             className={`text-xl sm:text-2xl font-semibold placeholder:text-gray-300 dark:placeholder:text-gray-600 h-auto py-2 sm:py-2.5 transition-all ${

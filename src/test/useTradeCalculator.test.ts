@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { useTradeCalculator, TradeCalculationResult } from '../app/hooks/useTradeCalculator';
+import { useTradeCalculator } from '../app/hooks/useTradeCalculator';
 import { renderHook, act } from '@testing-library/react';
 
 describe('useTradeCalculator', () => {

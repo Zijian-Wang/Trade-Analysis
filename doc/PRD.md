@@ -48,6 +48,10 @@ Displays and manages all active positions grouped by market.
 
 **Features:**
 - Position list with key metrics (Symbol, Cost, Stop, Price, Shares, Risk)
+- Company name (when available) displayed under the symbol for readability
+  - US: resolved from a static SEC-derived ticker directory served from `public/symbols/us_ticker_to_name.json` (lazy-loaded)
+  - CN: resolved from a static local map (lazy-loaded), with optional fallback when missing
+  - Options: show the *underlying* company name on desktop only (does not crowd expiry/strike lines)
 - Total portfolio risk per market ($ and %)
 - Actions: Adjust stop, Add to position, Close position, Edit shares
 - Manual position entry for non-synced positions
@@ -85,8 +89,7 @@ Displays and manages all active positions grouped by market.
 
 ### 2.4 Portfolio Overview (Work in Progress)
 
-- Risk allocation visualization
-- Portfolio summary statistics
+Portfolio overview UI is deferred. The app currently focuses on Entry + Active Positions workflows, with portfolio overview planned for a future phase.
 
 ---
 

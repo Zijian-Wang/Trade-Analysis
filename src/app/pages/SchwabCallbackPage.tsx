@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { exchangeCodeForTokens } from '../services/schwabAuth'
 import { Loader } from '../components/ui/loader'
-import { useLanguage } from '../context/LanguageContext'
 
 interface SchwabCallbackPageProps {
   onComplete: () => void
@@ -14,7 +13,6 @@ interface SchwabCallbackPageProps {
  */
 export function SchwabCallbackPage({ onComplete }: SchwabCallbackPageProps) {
   const { user, loading } = useAuth()
-  const { t } = useLanguage()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>(
     'processing',
   )

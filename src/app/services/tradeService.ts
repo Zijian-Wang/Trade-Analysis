@@ -34,6 +34,11 @@ export interface Trade {
   // Phase 1 fields (Compatible)
   entry: number // Avg entry if multiple contracts? Or initial?
   stop: number // Stop loss price (thesis invalidation point)
+  /**
+   * Legacy field used by older data migrations.
+   * Some stored documents may have `structureStop` instead of `stop`.
+   */
+  structureStop?: number
   target: number | null
   riskPercent: number
   positionSize: number // Total size
