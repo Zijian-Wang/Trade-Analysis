@@ -19,3 +19,18 @@ This will create:
 Notes:
 - The SEC requires a User-Agent. Set `SEC_USER_AGENT` (recommended).
   Example: `SEC_USER_AGENT="yourapp (you@example.com)"`
+
+## CN ticker → company name
+
+Generate the CN map from SSE + SZSE listings:
+
+```bash
+npm run generate:cn-names
+```
+
+This will create:
+- `public/symbols/cn_ticker_to_name.json`
+
+Notes:
+- **SSE** source is a JSON endpoint and may require a Referer header (the script sets a default).
+- **SZSE** source is an XLSX download; the generator uses `xlsx` to parse it.

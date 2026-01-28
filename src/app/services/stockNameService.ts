@@ -79,6 +79,34 @@ function getUsStaticNameSync(ticker: string): string | null {
   return usStaticMap[ticker] || null
 }
 
+let cnPublicMap: Record<string, string> | null = null
+let cnPublicMapPromise: Promise<Record<string, string>> | null = null
+
+async function getCnPublicMap(): Promise<Record<string, string>> {
+  if (cnPublicMap) return cnPublicMap
+  if (!cnPublicMapPromise) {
+    cnPublicMapPromise = fetch('/symbols/cn_ticker_to_name.json')
+      .then(async (res) => {
+        if (!res.ok) return {}
+        return (await res.json()) as Record<string, string>
+      })
+      .then((map) => {
+        cnPublicMap = map
+        return map
+      })
+      .catch(() => {
+        cnPublicMap = {}
+        return {}
+      })
+  }
+  return cnPublicMapPromise
+}
+
+function getCnPublicNameSync(ticker6: string): string | null {
+  if (!cnPublicMap) return null
+  return cnPublicMap[ticker6] || null
+}
+
 let chineseStaticMap: Record<string, string> | null = null
 let chineseStaticMapPromise: Promise<Record<string, string>> | null = null
 
@@ -190,6 +218,17 @@ export async function getStockName(
 
   // Check comprehensive stock names list first (no API call needed)
   if (market === 'CN') {
+    // Prefer the large static CN directory (if present), served from /public and cached by browser/CDN.
+    if (/^\d{6}$/.test(normalizedSymbol)) {
+      const map = await getCnPublicMap()
+      const name = map[normalizedSymbol]
+      if (name) {
+        stockNameCache.set(upperSymbol, name)
+        return name
+      }
+    }
+
+    // Fallback to the curated in-bundle map (smaller, lazy-loaded chunk).
     const cnMap = await getChineseStaticMap()
     const staticName = cnMap[normalizedSymbol]
     if (staticName) {
@@ -329,6 +368,11 @@ export function getStockNameSync(symbol: string, market: 'US' | 'CN'): string {
   }
 
   if (market === 'CN') {
+    if (/^\d{6}$/.test(normalized)) {
+      const publicName = getCnPublicNameSync(normalized)
+      if (publicName) return publicName
+    }
+
     const staticName = getChineseStaticNameSync(normalized)
     if (staticName) return staticName
   }
@@ -350,7 +394,7 @@ export function getStockNameSync(symbol: string, market: 'US' | 'CN'): string {
  * Call this when entering CN-related UI flows to avoid showing empty names while typing.
  */
 export async function preloadChineseStaticNames(): Promise<void> {
-  await getChineseStaticMap()
+  await Promise.all([getCnPublicMap(), getChineseStaticMap()])
 }
 
 /**

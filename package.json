@@ -10,7 +10,8 @@
     "typecheck": "tsc",
     "test": "vitest",
     "test:run": "vitest run",
-    "generate:us-names": "node scripts/generate-us-ticker-names.mjs"
+    "generate:us-names": "node scripts/generate-us-ticker-names.mjs",
+    "generate:cn-names": "node scripts/generate-cn-ticker-names.mjs"
   },
   "dependencies": {
     "@emotion/react": "11.14.0",
@@ -44,6 +45,7 @@
     "@radix-ui/react-toggle": "1.1.2",
     "@radix-ui/react-toggle-group": "1.1.2",
     "@radix-ui/react-tooltip": "1.1.8",
+    "@vercel/node": "^3.0.0",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "cmdk": "1.1.1",
@@ -51,7 +53,6 @@
     "embla-carousel-react": "8.6.0",
     "firebase": "^12.7.0",
     "firebase-admin": "^13.0.0",
-    "@vercel/node": "^3.0.0",
     "input-otp": "1.4.2",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "0.487.0",
@@ -84,7 +85,8 @@
     "tailwindcss": "4.1.12",
     "typescript": "^5.9.3",
     "vite": "6.3.5",
-    "vitest": "^4.0.17"
+    "vitest": "^4.0.17",
+    "xlsx": "^0.18.5"
   },
   "peerDependencies": {
     "react": "18.3.1",
