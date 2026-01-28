@@ -1,17 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { TradeInputCard } from './components/TradeInputCard'
 import { PositionSize } from './components/PositionSize'
-import { SettingsModal } from './components/SettingsModal'
-import { ActivePositionsPage } from './pages/ActivePositionsPage'
-import { PortfolioOverviewPage } from './pages/PortfolioOverviewPage'
 import { EmailVerificationBanner } from './components/EmailVerificationBanner'
-import { SchwabCallbackPage } from './pages/SchwabCallbackPage'
 import { ArrowUpRight } from 'lucide-react'
 import { useTheme } from 'next-themes'
 import { Header } from './components/Header'
 import { NavigationTabs } from './components/NavigationTabs'
 import { Toaster, toast } from 'sonner'
 import { useLanguage } from './context/LanguageContext'
+import { Loader } from './components/ui/loader'
 
 // Hooks
 import { useTradeCalculator } from './hooks/useTradeCalculator'
@@ -26,6 +23,28 @@ import {
   updateTrade,
   Trade,
 } from './services/tradeService'
+
+const SettingsModal = lazy(() =>
+  import('./components/SettingsModal').then((m) => ({ default: m.SettingsModal })),
+)
+
+const ActivePositionsPage = lazy(() =>
+  import('./pages/ActivePositionsPage').then((m) => ({
+    default: m.ActivePositionsPage,
+  })),
+)
+
+const PortfolioOverviewPage = lazy(() =>
+  import('./pages/PortfolioOverviewPage').then((m) => ({
+    default: m.PortfolioOverviewPage,
+  })),
+)
+
+const SchwabCallbackPage = lazy(() =>
+  import('./pages/SchwabCallbackPage').then((m) => ({
+    default: m.SchwabCallbackPage,
+  })),
+)
 
 export default function App() {
   // Theme
@@ -288,7 +307,15 @@ export default function App() {
           richColors
           theme={isDarkMode ? 'dark' : 'light'}
         />
-        <SchwabCallbackPage onComplete={() => setCurrentPage('active')} />
+        <Suspense
+          fallback={
+            <div className="flex justify-center p-8">
+              <Loader />
+            </div>
+          }
+        >
+          <SchwabCallbackPage onComplete={() => setCurrentPage('active')} />
+        </Suspense>
       </>
     )
   }
@@ -317,10 +344,28 @@ export default function App() {
       {/* Main Content */}
       <main className="max-w-[1260px] mx-auto px-4 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         {currentPage === 'active' && (
-          <ActivePositionsPage onAddToPosition={handleAddToPosition} />
+          <Suspense
+            fallback={
+              <div className="flex justify-center p-8">
+                <Loader />
+              </div>
+            }
+          >
+            <ActivePositionsPage onAddToPosition={handleAddToPosition} />
+          </Suspense>
         )}
 
-        {currentPage === 'portfolio' && <PortfolioOverviewPage />}
+        {currentPage === 'portfolio' && (
+          <Suspense
+            fallback={
+              <div className="flex justify-center p-8">
+                <Loader />
+              </div>
+            }
+          >
+            <PortfolioOverviewPage />
+          </Suspense>
+        )}
 
         {currentPage === 'main' && (
           <>
@@ -396,7 +441,9 @@ export default function App() {
       </main>
 
       {/* Settings Modal */}
-      <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <Suspense fallback={null}>
+        <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
+      </Suspense>
     </div>
   )
 }

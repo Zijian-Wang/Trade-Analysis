@@ -51,13 +51,16 @@ Displays and manages all active positions grouped by market.
 - Total portfolio risk per market ($ and %)
 - Actions: Adjust stop, Add to position, Close position, Edit shares
 - Manual position entry for non-synced positions
+- Market session status indicator (icon-only) on each market card:
+  - US: Open / Extended / Closed (incl. Holiday)
+  - CN: Open / Closed (incl. Lunch break)
 
 **Schwab Integration (US Market):**
 - When linked, Schwab becomes the source of truth for US positions
 - Portfolio capital synced from account liquidation value
 - Positions show average cost from Schwab
-- Stop prices from working stop/stop-limit orders
-- Positions without stop orders flagged with warning
+- Stop protection derived from open stop orders (stop market / stop limit)
+- Positions without protective stop orders flagged with warning (does not depend on market hours)
 
 ---
 
@@ -70,12 +73,12 @@ Displays and manages all active positions grouped by market.
 **Sync Capabilities:**
 - Account liquidation value → Portfolio capital
 - Active positions with average cost basis
-- Working stop orders (stop market, stop limit)
+- Open stop orders (stop market, stop limit) are treated as risk protection even outside market hours
 - Auto-sync on page load and every 5 minutes
 
 **Data Model:**
 - `syncedFromBroker: true` flag for broker positions
-- `hasWorkingStop` flag to identify unprotected positions
+- `hasWorkingStop` flag to identify unprotected positions (stop order existence; market hours do not affect this)
 - Manual US trades hidden when Schwab is linked
 
 ---

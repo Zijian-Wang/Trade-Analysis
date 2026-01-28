@@ -16,6 +16,9 @@ import { StopAdjustModal } from '../components/StopAdjustModal'
 import { ManualPositionModal } from '../components/ManualPositionModal'
 import { EditSharesModal } from '../components/EditSharesModal'
 import { PriceRangeBar } from '../components/PriceRangeBar'
+import { AuthModal } from '../components/AuthModal'
+import { MarketFlag } from '../components/MarketFlag'
+import { MarketSessionIcon } from '../components/MarketSessionIcon'
 import {
   ShieldAlert,
   PlusCircle,
@@ -57,6 +60,7 @@ export function ActivePositionsPage({
   const [loading, setLoading] = useState(true)
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null)
   const [stopModalOpen, setStopModalOpen] = useState(false)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
 
   // Close Confirmation State
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false)
@@ -351,6 +355,11 @@ export function ActivePositionsPage({
   }
 
   const handleLinkSchwabAccount = async () => {
+    if (!user) {
+      toast.error(t('schwab.linkRequiresAuth'))
+      setAuthModalOpen(true)
+      return
+    }
     try {
       const { url } = await getSchwabAuthUrl()
       window.location.href = url
@@ -447,15 +456,41 @@ export function ActivePositionsPage({
                     </p>
                   </div>
                 )}
-              <Button
-                onClick={handleLinkSchwabAccount}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
-              >
-                <Link2 size={16} />
-                {preferences.schwabLinked ? 'Re-link' : t('schwab.linkAccount')}
-              </Button>
+              {!user ? (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={handleLinkSchwabAccount}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      handleLinkSchwabAccount()
+                    }
+                  }}
+                  className="inline-flex"
+                  aria-label={t('schwab.linkRequiresAuth')}
+                >
+                  <Button
+                    disabled
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                  >
+                    <Link2 size={16} />
+                    {t('schwab.linkAccount')}
+                  </Button>
+                </span>
+              ) : (
+                <Button
+                  onClick={handleLinkSchwabAccount}
+                  variant="outline"
+                  size="sm"
+                  className="flex items-center gap-2 dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:hover:text-white transition-all"
+                >
+                  <Link2 size={16} />
+                  {preferences.schwabLinked ? 'Re-link' : t('schwab.linkAccount')}
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -507,10 +542,15 @@ export function ActivePositionsPage({
                   <div className="px-4 py-3 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 font-medium">
-                        <span>
-                          {groupMarket === 'US'
-                            ? '🇺🇸 US Market'
-                            : '🇨🇳 CN Market'}
+                        <span className="inline-flex items-center gap-2">
+                          <MarketFlag
+                            market={groupMarket}
+                            className="h-4 w-6 rounded-[2px] shadow-sm ring-1 ring-black/5"
+                          />
+                          <span>
+                            {groupMarket === 'US' ? 'US Market' : 'CN Market'}
+                          </span>
+                          <MarketSessionIcon market={groupMarket} />
                         </span>
                         <span className="text-xs text-gray-400 bg-white dark:bg-gray-800 px-2 py-0.5 rounded-full border border-gray-200 dark:border-gray-700">
                           {groupTrades.length}
@@ -1101,6 +1141,7 @@ export function ActivePositionsPage({
           trade={tradeToEditShares}
           onSuccess={fetchTrades}
         />
+        <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
       </div>
     </TooltipProvider>
   )

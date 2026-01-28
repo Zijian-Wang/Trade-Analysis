@@ -35,6 +35,58 @@ const DEFAULT_PREFERENCES: UserPreferences = {
 
 const GUEST_STORAGE_KEY = 'trade_analysis_guest_preferences';
 
+function coerceFiniteNumber(value: unknown, fallback: number) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const n = Number(value.replace(/,/g, '').trim());
+    if (Number.isFinite(n)) return n;
+  }
+  return fallback;
+}
+
+function normalizePreferences(raw: unknown): UserPreferences {
+  const obj = (raw && typeof raw === 'object' ? raw : {}) as any;
+
+  const activeMarkets =
+    Array.isArray(obj.activeMarkets) && obj.activeMarkets.length > 0
+      ? (obj.activeMarkets.filter((m: unknown) => m === 'US' || m === 'CN') as (
+          | 'US'
+          | 'CN'
+        )[])
+      : DEFAULT_PREFERENCES.activeMarkets;
+
+  const singleMarketMode =
+    typeof obj.singleMarketMode === 'boolean'
+      ? obj.singleMarketMode
+      : DEFAULT_PREFERENCES.singleMarketMode;
+
+  const languageFollowsMarket =
+    typeof obj.languageFollowsMarket === 'boolean'
+      ? obj.languageFollowsMarket
+      : DEFAULT_PREFERENCES.languageFollowsMarket;
+
+  const rawDefaultPortfolio = obj.defaultPortfolio ?? {};
+  const defaultPortfolio = {
+    US: coerceFiniteNumber(
+      rawDefaultPortfolio.US,
+      DEFAULT_PREFERENCES.defaultPortfolio.US,
+    ),
+    CN: coerceFiniteNumber(
+      rawDefaultPortfolio.CN,
+      DEFAULT_PREFERENCES.defaultPortfolio.CN,
+    ),
+  };
+
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...obj,
+    activeMarkets,
+    singleMarketMode,
+    languageFollowsMarket,
+    defaultPortfolio,
+  };
+}
+
 interface UserPreferencesContextType {
   preferences: UserPreferences;
   updatePreferences: (updates: Partial<UserPreferences>) => Promise<void>;
@@ -56,12 +108,12 @@ export const UserPreferencesProvider = ({ children }: { children: ReactNode }) =
       
       const unsubscribe = onSnapshot(userPrefsRef, (snapshot) => {
         if (snapshot.exists()) {
-          setPreferences({ ...DEFAULT_PREFERENCES, ...snapshot.data() as UserPreferences });
+          setPreferences(normalizePreferences(snapshot.data()));
         } else {
           // First time: check for guest preferences to migrate
           const guestPrefs = localStorage.getItem(GUEST_STORAGE_KEY);
           if (guestPrefs) {
-            const parsed = JSON.parse(guestPrefs) as UserPreferences;
+            const parsed = normalizePreferences(JSON.parse(guestPrefs));
             // Save migrated preferences to Firestore
             setDoc(userPrefsRef, parsed);
             setPreferences(parsed);
@@ -80,7 +132,7 @@ export const UserPreferencesProvider = ({ children }: { children: ReactNode }) =
       const stored = localStorage.getItem(GUEST_STORAGE_KEY);
       if (stored) {
         try {
-          setPreferences(JSON.parse(stored));
+          setPreferences(normalizePreferences(JSON.parse(stored)));
         } catch {
           setPreferences(DEFAULT_PREFERENCES);
         }
@@ -92,7 +144,15 @@ export const UserPreferencesProvider = ({ children }: { children: ReactNode }) =
   }, [user]);
 
   const updatePreferences = useCallback(async (updates: Partial<UserPreferences>) => {
-    const newPrefs = { ...preferences, ...updates };
+    const merged = {
+      ...preferences,
+      ...updates,
+      defaultPortfolio: {
+        ...preferences.defaultPortfolio,
+        ...(updates as any).defaultPortfolio,
+      },
+    };
+    const newPrefs = normalizePreferences(merged);
     setPreferences(newPrefs);
 
     if (user) {

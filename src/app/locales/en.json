@@ -112,6 +112,7 @@
   },
   "auth": {
     "signIn": "Sign In",
+    "loginSignup": "Login / Signup",
     "signUp": "Sign Up",
     "signOut": "Sign Out",
     "email": "Email",
@@ -159,6 +160,7 @@
     "syncSuccess": "Account synced successfully",
     "syncFailed": "Failed to sync account",
     "reAuthRequired": "Re-authentication required. Please link your Schwab account again.",
+    "linkRequiresAuth": "Please log in or sign up first to link your Schwab account.",
     "lastSync": "Last synced",
     "syncing": "Syncing...",
     "unlinkAccount": "Unlink Account"

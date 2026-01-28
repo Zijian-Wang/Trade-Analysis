@@ -112,6 +112,7 @@
   },
   "auth": {
     "signIn": "登录",
+    "loginSignup": "登录 / 注册",
     "signUp": "注册",
     "signOut": "退出登录",
     "email": "邮箱",
@@ -159,6 +160,7 @@
     "syncSuccess": "账户同步成功",
     "syncFailed": "账户同步失败",
     "reAuthRequired": "需要重新认证。请重新关联您的 Schwab 账户。",
+    "linkRequiresAuth": "请先登录或注册，然后再关联您的 Schwab 账户。",
     "lastSync": "最后同步",
     "syncing": "同步中...",
     "unlinkAccount": "取消关联"

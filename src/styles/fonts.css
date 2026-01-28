@@ -3,6 +3,17 @@
 
 @layer base {
   html {
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto,
+      'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji',
+      'Segoe UI Emoji', 'Noto Color Emoji';
+  }
+
+  /**
+   * Force emoji-capable fonts for emoji glyphs (e.g., country flags).
+   * Some font stacks can render regional-indicator letters as plain text ("US")
+   * instead of combining them into a flag emoji.
+   */
+  .font-emoji {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   }
 }

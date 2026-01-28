@@ -40,7 +40,7 @@ export function UserMenu({ onNavigate }: UserMenuProps) {
           onClick={() => setAuthModalOpen(true)}
           className="px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200  text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
         >
-          {t('auth.signIn')}
+          {t('auth.loginSignup')}
         </button>
         <AuthModal open={authModalOpen} onOpenChange={setAuthModalOpen} />
       </>

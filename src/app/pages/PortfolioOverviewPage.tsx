@@ -6,6 +6,8 @@ import { useMarketSettings } from "../hooks/useMarketSettings";
 import { useLanguage } from "../context/LanguageContext";
 import { Loader } from "../components/ui/loader";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, Donut } from "recharts";
+import { MarketFlag } from "../components/MarketFlag";
+import { MarketSessionIcon } from "../components/MarketSessionIcon";
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658'];
 
@@ -101,7 +103,14 @@ export function PortfolioOverviewPage() {
      return (
        <div className="space-y-4">
          <h2 className="text-xl font-semibold flex items-center gap-2 text-gray-800 dark:text-gray-100 border-b border-gray-200 dark:border-gray-700 pb-2">
-           <span>{marketKey === 'US' ? '🇺🇸 US Market' : '🇨🇳 CN Market'}</span>
+          <span className="inline-flex items-center gap-2">
+            <MarketFlag
+              market={marketKey}
+              className="h-4 w-6 rounded-[2px] shadow-sm ring-1 ring-black/5"
+            />
+            <span>{marketKey === 'US' ? 'US Market' : 'CN Market'}</span>
+            <MarketSessionIcon market={marketKey} />
+          </span>
          </h2>
          
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

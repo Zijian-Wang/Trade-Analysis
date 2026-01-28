@@ -470,7 +470,7 @@ export function TradeInputCard({
               setIsTyping(false)
             }}
             placeholder={market === 'CN' ? '510300' : undefined}
-            className={`text-xl sm:text-2xl font-semibold h-auto py-2 sm:py-2.5 transition-all ${
+            className={`text-xl sm:text-2xl font-semibold placeholder:text-gray-300 dark:placeholder:text-gray-600 h-auto py-2 sm:py-2.5 transition-all ${
               isDarkMode
                 ? 'bg-gray-900 border-gray-600 text-white focus:border-blue-400'
                 : 'bg-white border-gray-200 text-gray-900 focus:border-blue-500'
@@ -498,7 +498,7 @@ export function TradeInputCard({
             >
               <button
                 onClick={() => setDirection('long')}
-                className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
+                className={`flex-1 min-w-0 inline-flex items-center justify-center h-7 sm:h-9 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-medium leading-none whitespace-nowrap transition-all ${
                   direction === 'long'
                     ? market === 'CN'
                       ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-sm'
@@ -512,7 +512,7 @@ export function TradeInputCard({
               </button>
               <button
                 onClick={() => setDirection('short')}
-                className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
+                className={`flex-1 min-w-0 inline-flex items-center justify-center h-7 sm:h-9 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-medium leading-none whitespace-nowrap transition-all ${
                   direction === 'short'
                     ? market === 'CN'
                       ? 'bg-gradient-to-r from-emerald-500 to-green-500 text-white shadow-sm'
@@ -538,7 +538,7 @@ export function TradeInputCard({
             >
               <button
                 onClick={() => setSentiment('TREND')}
-                className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
+                className={`flex-1 min-w-0 inline-flex items-center justify-center h-7 sm:h-9 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-medium leading-none whitespace-nowrap transition-all ${
                   sentiment === 'TREND'
                     ? isDarkMode
                       ? 'bg-white text-gray-900 shadow-sm'
@@ -552,7 +552,7 @@ export function TradeInputCard({
               </button>
               <button
                 onClick={() => setSentiment('PROBE')}
-                className={`flex-1 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all ${
+                className={`flex-1 min-w-0 inline-flex items-center justify-center h-7 sm:h-9 px-3 sm:px-4 rounded-full text-xs sm:text-sm font-medium leading-none whitespace-nowrap transition-all ${
                   sentiment === 'PROBE'
                     ? isDarkMode
                       ? 'bg-white text-gray-900 shadow-sm'

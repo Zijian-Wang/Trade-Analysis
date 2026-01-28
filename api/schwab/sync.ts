@@ -168,28 +168,67 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60)
     const now = new Date()
 
-    const ordersResponse = await fetch(
-      `https://api.schwabapi.com/trader/v1/accounts/${accountHash}/orders?` +
+    // NOTE:
+    // Do NOT treat market-hours as affecting "stop order existence".
+    // Schwab stop orders can be returned as `AWAITING_STOP_CONDITION` (and sometimes other active statuses),
+    // especially outside regular market hours. We fetch multiple statuses and merge.
+    const fetchOrdersByStatus = async (
+      status?: string,
+    ): Promise<SchwabOrder[]> => {
+      const url =
+        `https://api.schwabapi.com/trader/v1/accounts/${accountHash}/orders?` +
         `fromEnteredTime=${sixtyDaysAgo.toISOString()}&` +
-        `toEnteredTime=${now.toISOString()}&` +
-        `status=WORKING`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      },
+        `toEnteredTime=${now.toISOString()}` +
+        (status ? `&status=${encodeURIComponent(status)}` : '')
+
+      try {
+        const response = await fetch(url, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        })
+        if (!response.ok) return []
+        return ((await response.json()) as SchwabOrder[]) || []
+      } catch (e) {
+        console.error('Failed to fetch Schwab orders:', e)
+        return []
+      }
+    }
+
+    // Try a small set of likely "active" statuses. If Schwab rejects an unknown status,
+    // that call will simply return [] and we still proceed.
+    const statusesToFetch = [
+      'WORKING',
+      'AWAITING_STOP_CONDITION',
+      'QUEUED',
+      'PENDING_ACTIVATION',
+    ]
+
+    const ordersByStatus = await Promise.all(
+      statusesToFetch.map((s) => fetchOrdersByStatus(s)),
     )
 
-    const orders: SchwabOrder[] = ordersResponse.ok
-      ? ((await ordersResponse.json()) as SchwabOrder[]) || []
-      : []
+    // Merge + de-dupe by orderId
+    const ordersMap = new Map<number, SchwabOrder>()
+    for (const list of ordersByStatus) {
+      for (const order of list) {
+        ordersMap.set(order.orderId, order)
+      }
+    }
+    const orders = Array.from(ordersMap.values())
 
     // Filter stop orders
     const stopOrders = orders.filter(
       (order) =>
-        (order.orderType === 'STOP' || order.orderType === 'STOP_LIMIT') &&
+        (order.orderType === 'STOP' ||
+          order.orderType === 'STOP_LIMIT' ||
+          order.orderType === 'TRAILING_STOP') &&
+        // Important: market-hours do not affect stop existence.
+        // If Schwab says it's queued/awaiting trigger, we still treat it as a stop.
         (order.status === 'WORKING' ||
-          order.status === 'AWAITING_STOP_CONDITION'),
+          order.status === 'AWAITING_STOP_CONDITION' ||
+          order.status === 'QUEUED' ||
+          order.status === 'PENDING_ACTIVATION'),
     )
 
     // Map positions to Trade model format

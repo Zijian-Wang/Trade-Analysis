@@ -93,10 +93,10 @@
 ## Phase 6: Schwab Broker Integration (Auto-Sync Active Positions)
 
 ### Milestone 5.1: Backend Infrastructure Setup
-- [ ] **Create Vercel Serverless Functions Structure**
-  - [ ] Create `/api/auth/schwab/callback.ts` - OAuth callback handler
-  - [ ] Create `/api/auth/schwab/token.ts` - Token refresh endpoint
-  - [ ] Create `/api/schwab/sync.ts` - Unified sync endpoint (positions + orders → risk snapshot)
+- [x] **Create Vercel Serverless Functions Structure**
+  - [x] Create `/api/auth/schwab/callback.ts` - OAuth callback handler
+  - [x] Create `/api/auth/schwab/token.ts` - Token refresh endpoint
+  - [x] Create `/api/schwab/sync.ts` - Unified sync endpoint (positions + orders → risk snapshot)
   - [ ] Update `vercel.json` to configure serverless functions
 
 - [ ] **Token Storage & Security**
@@ -117,11 +117,11 @@
   - [ ] Build OAuth authorization URL redirect flow
   - [ ] Handle OAuth callback page (`/auth/schwab/callback`)
 
-- [ ] **Backend Token Exchange**
-  - [ ] Implement token exchange endpoint (authorization code → access/refresh tokens)
+- [x] **Backend Token Exchange**
+  - [x] Implement token exchange endpoint (authorization code → access/refresh tokens)
   - [ ] Store tokens securely in Firestore (encrypted)
-  - [ ] Return success/error status to frontend
-  - [ ] Handle OAuth errors gracefully
+  - [x] Return success/error status to frontend
+  - [x] Handle OAuth errors gracefully
 
 - [ ] **Token Refresh Logic**
   - [ ] Implement automatic token refresh (check `expiresAt`, refresh before 30min expiry)
@@ -144,11 +144,11 @@
     - `marketValue` → current value (for display)
 
 - [ ] **Stop Order Fetching**
-  - [ ] Implement `GET /trader/v1/accounts/{hash}/orders?status=WORKING`
-  - [ ] Filter for stop orders (`STOP`, `STOP_LIMIT` types)
-  - [ ] Map stop orders to positions by symbol
-  - [ ] Handle `AWAITING_STOP_CONDITION` status
-  - [ ] Extract `stopPrice` as effective stop for risk calculation
+  - [x] Implement stop order fetching for open stops
+  - [x] Treat `AWAITING_STOP_CONDITION` as an existing stop order (market hours do not affect stop existence)
+  - [x] Filter stop orders (`STOP`, `STOP_LIMIT`, `TRAILING_STOP`)
+  - [x] Map stop orders to positions by symbol
+  - [x] Extract `stopPrice` as effective stop for risk calculation (where available)
 
 - [ ] **Instrument Type Detection**
   - [ ] Check `instrument.assetType` from Schwab response
@@ -176,6 +176,11 @@
   - [ ] Display "Unsupported" badge for complex instruments
   - [ ] Show "No Stop Order" warning for positions without stops
   - [ ] Update portfolio risk summary with synced data
+
+### UI Enhancement: Market Session Indicator
+- [x] Add market session status indicator icon on market cards (US/CN)
+  - [x] US: Sun (OPEN), Sunrise/Sunset (EXT), Moon (CLOSED), CalendarX (HOLIDAY)
+  - [x] CN: Sun (OPEN), Coffee (LUNCH), Moon (CLOSED)
 
 - [ ] **Error Handling & UX**
   - [ ] Handle API rate limits gracefully

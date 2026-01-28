@@ -148,7 +148,7 @@ Authorization: Bearer {access_token}
 GET /trader/v1/accounts/{accountHash}/orders
   ?fromEnteredTime={ISO_DATE}
   &toEnteredTime={ISO_DATE}
-  &status=WORKING
+  &status=WORKING (optional)
 Authorization: Bearer {access_token}
 ```
 
@@ -167,6 +167,11 @@ Authorization: Bearer {access_token}
 | `WORKING` | Order is active in market |
 | `FILLED` | Order executed |
 | `CANCELED` | Order was canceled |
+
+**Important Note (Market Hours vs Stop Existence):**
+- Stop orders may appear as `AWAITING_STOP_CONDITION` outside regular market hours.
+- A stop order still **exists** (and should be treated as risk protection) even if it cannot execute while the market is closed.
+- Do not rely on market-open time to decide whether a stop order “counts”.
 
 **Stop Order Response Example:**
 ```json

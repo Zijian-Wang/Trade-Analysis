@@ -315,7 +315,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       </span>
                       <input
                         type="text"
-                        value={localPrefs.defaultPortfolio.US.toLocaleString()}
+                        value={Number(localPrefs.defaultPortfolio?.US ?? 0).toLocaleString()}
                         onChange={(e) =>
                           handlePortfolioChange('US', e.target.value)
                         }
@@ -338,7 +338,7 @@ export function SettingsModal({ open, onOpenChange }: SettingsModalProps) {
                       </span>
                       <input
                         type="text"
-                        value={localPrefs.defaultPortfolio.CN.toLocaleString()}
+                        value={Number(localPrefs.defaultPortfolio?.CN ?? 0).toLocaleString()}
                         onChange={(e) =>
                           handlePortfolioChange('CN', e.target.value)
                         }

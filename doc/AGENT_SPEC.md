@@ -107,12 +107,14 @@ interface RiskContract {
 *   **See**: `doc/task.md` Phase 5 milestones
 
 ### 5. Broker Integration (Planned - Phase 6)
-*   **Status**: Not yet implemented
-*   **Planned Features**:
-    *   Schwab OAuth account linking
-    *   Auto-sync active positions and stop orders
-    *   Risk calculation from synced data
-    *   Unsupported instrument labeling
+*   **Status**: Implemented (incremental)
+*   **Features**:
+    *   Schwab account linking + auto-sync of US positions.
+    *   Stop order detection counts stop existence even when market is closed (e.g. `AWAITING_STOP_CONDITION`).
+    *   UI warning for unprotected positions uses the broker-derived stop existence flag.
+    *   Market session indicator icon on market cards:
+        * US: OPEN / EXT / CLOSED / HOLIDAY
+        * CN: OPEN / CLOSED (incl. lunch break)
 *   **See**: `doc/task.md` Phase 6 milestones and `doc/schwab-api-research.md`
 
 ---

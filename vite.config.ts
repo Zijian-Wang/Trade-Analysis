@@ -16,6 +16,33 @@ export default defineConfig({
       '@': path.resolve(path.dirname(fileURLToPath(import.meta.url)), './src'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          // Split out big/rarely-needed deps so main chunk stays smaller
+          if (id.includes('firebase')) return 'vendor-firebase'
+          if (id.includes('recharts') || id.includes('/d3-')) return 'vendor-charts'
+
+          // UI-heavy libs
+          if (
+            id.includes('@mui/') ||
+            id.includes('@radix-ui/') ||
+            id.includes('lucide-react') ||
+            id.includes('sonner') ||
+            id.includes('next-themes') ||
+            id.includes('motion')
+          ) {
+            return 'vendor-ui'
+          }
+
+          return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     proxy: {
       '/api/stooq': {

@@ -168,7 +168,7 @@ export function ManualPositionModal({
               value={tickerSymbol}
               onChange={(e) => setTickerSymbol(e.target.value.toUpperCase())}
               placeholder={market === 'CN' ? '510300' : 'AAPL'}
-              className="col-span-3"
+              className="col-span-3 placeholder:text-gray-300 dark:placeholder:text-gray-600"
               autoFocus
             />
           </div>
